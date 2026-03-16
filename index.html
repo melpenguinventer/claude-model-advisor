@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Choose the right Claude model for your task and get an optimized prompt">
+    <title>Claude Model Advisor - Choose Your Model</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script>
+        const { useState } = React;
+
+        const ClaudeModelAdvisor = () => {
+            const [step, setStep] = useState('questions');
+            const [answers, setAnswers] = useState({
+                taskDescription: '',
+                complexity: null,
+                speed: null,
+                budget: null,
+                context: null,
+                volume: null,
+                accuracy: null,
+            });
+            const [copied, setCopied] = useState(false);
+            const [complexityHelperStep, setComplexityHelperStep] = useState(0);
+            const [helperAnswers, setHelperAnswers] = useState({
+                couldDoManually: null,
+                wouldSonnetWork: null,
+                researchNeeded: null,
+                complexReasoning: null,
+            });
+
+            const models = {
+                haiku: {
+                    name: 'Claude Haiku 4.5',
+                    description: 'Lightning-fast and affordable',
+                    color: 'from-amber-400 to-orange-500',
+                    strengths: ['Quick responses', 'Low cost', 'Real-time tasks'],
+                    bestFor: ['Quick summaries', 'Simple tasks', 'Data extraction', 'Classification'],
+                    costs: '$0.80 input / $4 output per 1M tokens',
+                    speed: 'Fastest (50+ tok/s)',
+                    accuracy: '73.3% (SWE-bench)',
+                    context: '200K tokens',
+                    use: 'When speed and cost matter more than depth',
+                    costPerTask: '$0.01-0.05',
+                    benefits: {
+                        sonnet: { improvement: '5-10%', cost: '60x cheaper' },
+                        opus: { improvement: '10-15%', cost: '100x cheaper' },
+                    },
+                },
+                sonnet: {
+                    name: 'Claude Sonnet 4.6',
+                    description: 'The reliable workhorse',
+                    color: 'from-blue-400 to-cyan-500',
+                    strengths: ['Balanced capability', 'Consistent quality', 'Production-ready'],
+                    bestFor: ['Feature development', 'Content creation', 'Code review', 'Analysis'],
+                    costs: '$3 input / $15 output per 1M tokens',
+                    speed: 'Fast (20+ tok/s)',
+                    accuracy: '~80% (SWE-bench)',
+                    context: '200K or 1M tokens',
+                    use: 'Your default for most work—best value',
+                    costPerTask: '$0.10-0.50',
+                    benefits: {
+                        haiku: { improvement: '-5-10%', cost: '10x more' },
+                        opus: { improvement: '5-10%', cost: '5-8x more' },
+                    },
+                },
+                opus: {
+                    name: 'Claude Opus 4.6',
+                    description: 'Deep thinking for complex problems',
+                    color: 'from-purple-400 to-pink-500',
+                    strengths: ['Deep reasoning', 'Complex analysis', '1M context window'],
+                    bestFor: ['Architecture decisions', 'Critical reviews', 'Multi-step reasoning', 'Large codebase analysis'],
+                    costs: '$5 input / $25 output per 1M tokens',
+                    speed: 'Slower (10+ tok/s)',
+                    accuracy: '80.9% (SWE-bench)',
+                    context: '1M tokens (extended)',
+                    use: 'Reserve for truly complex, high-stakes work',
+                    costPerTask: '$1-3',
+                    benefits: {
+                        sonnet: { improvement: '5-10%', cost: '5-8x more' },
+                        haiku: { improvement: '10-15%', cost: '100x more' },
+                    },
+                },
+            };
+
+            const scoreModel = () => {
+                if (!answers.taskDescription.trim()) return null;
+
+                let scores = { haiku: 0, sonnet: 0, opus: 0 };
+
+                let finalComplexity = answers.complexity;
+                if (complexityHelperStep > 0 && helperAnswers.complexReasoning !== null) {
+                    const helperScore = Object.values(helperAnswers).filter(v => v === true).length;
+                    if (helperScore >= 3) finalComplexity = 'complex';
+                    else if (helperScore >= 2) finalComplexity = 'medium';
+                    else finalComplexity = 'simple';
+                }
+
+                if (finalComplexity === 'simple') scores.haiku += 3;
+                if (finalComplexity === 'medium') scores.sonnet += 3;
+                if (finalComplexity === 'complex') scores.opus += 3;
+                if (finalComplexity === 'critical') scores.opus += 4;
+
+                if (answers.speed === 'instant') scores.haiku += 2;
+                if (answers.speed === 'fast') scores.sonnet += 2;
+                if (answers.speed === 'thorough') scores.opus += 1;
+
+                if (answers.budget === 'very') scores.haiku += 2;
+                if (answers.budget === 'somewhat') scores.sonnet += 2;
+                if (answers.budget === 'flexible') scores.opus += 1;
+
+                if (answers.context === 'small') scores.haiku += 1;
+                if (answers.context === 'medium') scores.sonnet += 1;
+                if (answers.context === 'large') scores.sonnet += 2;
+                if (answers.context === 'massive') scores.opus += 3;
+
+                if (answers.volume === 'high') scores.haiku += 1;
+                if (answers.volume === 'medium') scores.sonnet += 1;
+                if (answers.volume === 'low') scores.opus += 1;
+
+                if (answers.accuracy === 'good-enough') scores.haiku += 1;
+                if (answers.accuracy === 'reliable') scores.sonnet += 1;
+                if (answers.accuracy === 'mission-critical') scores.opus += 3;
+
+                const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+                return sorted[0][0];
+            };
+
+            const recommended = scoreModel();
+
+            const generatePrompt = () => {
+                if (!recommended) return '';
+
+                const taskLower = answers.taskDescription.toLowerCase();
+                let modelInstructions = [];
+
+                if (answers.complexity === 'complex' || answers.complexity === 'critical') {
+                    modelInstructions.push('- Think step-by-step through this problem');
+                    modelInstructions.push('- Break down complex parts into smaller pieces');
+                    if (recommended === 'opus') {
+                        modelInstructions.push('- Use extended thinking for particularly complex sections');
+                    }
+                }
+
+                if (answers.accuracy === 'mission-critical') {
+                    modelInstructions.push('- Double-check facts and reasoning');
+                    modelInstructions.push('- Explain your confidence level for key claims');
+                    modelInstructions.push('- Flag any uncertainties or assumptions');
+                } else if (answers.accuracy === 'reliable') {
+                    modelInstructions.push('- Aim for accuracy while being practical');
+                    modelInstructions.push('- Cite sources where relevant');
+                }
+
+                if (answers.speed === 'thorough') {
+                    modelInstructions.push('- Prioritize depth and completeness over brevity');
+                    modelInstructions.push('- Include detailed explanations and reasoning');
+                } else if (answers.speed === 'instant') {
+                    modelInstructions.push('- Focus on quick, direct answers');
+                    modelInstructions.push('- Skip unnecessary details');
+                }
+
+                if (answers.context === 'massive') {
+                    modelInstructions.push('- Use all the context provided to inform your response');
+                    modelInstructions.push('- Look for patterns and connections across the material');
+                }
+
+                if (answers.volume === 'high') {
+                    modelInstructions.push('- Optimize for clarity and reusability');
+                    modelInstructions.push('- Include patterns that work at scale');
+                }
+
+                if (taskLower.includes('blog') || taskLower.includes('write') || taskLower.includes('article')) {
+                    modelInstructions.push('- Write for clarity and engagement');
+                    modelInstructions.push('- Use concrete examples to illustrate points');
+                    modelInstructions.push('- Organize with a clear narrative flow');
+                } else if (taskLower.includes('code') || taskLower.includes('debug')) {
+                    modelInstructions.push('- Provide production-ready code');
+                    modelInstructions.push('- Include inline comments for non-obvious logic');
+                    if (recommended !== 'haiku') {
+                        modelInstructions.push('- Explain the reasoning behind your approach');
+                    }
+                } else if (taskLower.includes('analyze') || taskLower.includes('analysis')) {
+                    modelInstructions.push('- Consider multiple perspectives');
+                    modelInstructions.push('- Support conclusions with evidence');
+                    modelInstructions.push('- Highlight implications and trade-offs');
+                } else if (taskLower.includes('summarize') || taskLower.includes('summary')) {
+                    modelInstructions.push('- Extract the most important information');
+                    modelInstructions.push('- Keep summaries concise but complete');
+                }
+
+                let outputInstructions = [];
+                if (taskLower.includes('blog') || taskLower.includes('write') || taskLower.includes('article')) {
+                    outputInstructions.push('- Use clear headings and subheadings');
+                    outputInstructions.push('- Keep paragraphs focused (2-3 sentences max)');
+                    outputInstructions.push('- Include intro, body, and conclusion');
+                } else if (taskLower.includes('code') || taskLower.includes('debug')) {
+                    outputInstructions.push('- Code in clearly labeled blocks');
+                    outputInstructions.push('- Include explanatory text between code sections');
+                    if (answers.speed === 'thorough') {
+                        outputInstructions.push('- Show before/after if fixing existing code');
+                    }
+                } else if (taskLower.includes('summarize')) {
+                    outputInstructions.push('- Use bullet points or numbered list');
+                    outputInstructions.push('- One idea per bullet, 1-2 sentences each');
+                } else {
+                    outputInstructions.push('- Structure with clear sections');
+                    outputInstructions.push('- Use formatting (bold, bullets) for readability');
+                }
+
+                const promptParts = [
+                    `# Task: ${answers.taskDescription}`,
+                    '',
+                    '## How to approach this',
+                    modelInstructions.join('\n'),
+                    '',
+                    '## Format for your response',
+                    outputInstructions.join('\n'),
+                ];
+
+                return promptParts.join('\n');
+            };
+
+            const copyPrompt = () => {
+                const prompt = generatePrompt();
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(prompt).then(() => {
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                    }).catch(() => {
+                        fallbackCopy(prompt);
+                    });
+                } else {
+                    fallbackCopy(prompt);
+                }
+            };
+
+            const fallbackCopy = (text) => {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand("copy");
+                document.body.removeChild(textArea);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            };
+
+            const reset = () => {
+                setStep('questions');
+                setComplexityHelperStep(0);
+                setAnswers({
+                    taskDescription: '',
+                    complexity: null,
+                    speed: null,
+                    budget: null,
+                    context: null,
+                    volume: null,
+                    accuracy: null,
+                });
+                setHelperAnswers({
+                    couldDoManually: null,
+                    wouldSonnetWork: null,
+                    researchNeeded: null,
+                    complexReasoning: null,
+                });
+            };
+
+            const allAnswered = 
+                answers.taskDescription.trim() && 
+                answers.speed && 
+                answers.budget && 
+                answers.context && 
+                answers.volume && 
+                answers.accuracy && 
+                (answers.complexity || complexityHelperStep > 0);
+
+            const complexityHelperQuestions = [
+                {
+                    id: 'couldDoManually',
+                    question: 'Could you reasonably do this task yourself (but time-consuming)?',
+                    help: 'If yes, it\'s probably simpler than you think. A cheaper model might handle it.',
+                },
+                {
+                    id: 'wouldSonnetWork',
+                    question: 'Do you think Sonnet (the middle model) would probably work fine?',
+                    help: 'If yes, Sonnet is usually the sweet spot. Opus is likely overkill.',
+                },
+                {
+                    id: 'researchNeeded',
+                    question: 'Does this task require deep research, fact-checking, or learning new information?',
+                    help: 'If yes, premium models shine. If no, cheaper models work great.',
+                },
+                {
+                    id: 'complexReasoning',
+                    question: 'Does this need multi-step reasoning or connecting lots of ideas together?',
+                    help: 'If yes, you might benefit from Opus. If no, Sonnet usually handles it.',
+                },
+            ];
+
+            // Simplified JSX rendering
+            return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 p-6 md:p-12' },
+                React.createElement('div', { className: 'max-w-2xl mx-auto' },
+                    React.createElement('div', { className: 'mb-8' },
+                        React.createElement('h1', { className: 'text-4xl md:text-5xl font-bold text-slate-900 mb-2' }, 'Claude Model Advisor'),
+                        React.createElement('p', { className: 'text-lg text-slate-600' }, 'Tell me what you need. I\'ll recommend the best model and create a custom prompt.')
+                    ),
+
+                    step === 'questions' && React.createElement('div', { className: 'space-y-6' },
+                        React.createElement('div', { className: 'bg-white rounded-xl shadow-sm border border-slate-200 p-6' },
+                            React.createElement('label', { className: 'block text-sm font-semibold text-slate-900 mb-2' }, 'What do you want to do?'),
+                            React.createElement('textarea', {
+                                value: answers.taskDescription,
+                                onChange: (e) => setAnswers({ ...answers, taskDescription: e.target.value }),
+                                placeholder: 'E.g., "Debug a complex TypeScript async function", "Write a 2000-word blog post", "Analyze a research paper"',
+                                className: 'w-full h-20 p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 placeholder-slate-400',
+                            })
+                        ),
+
+                        React.createElement('div', { className: 'bg-white rounded-xl shadow-sm border border-slate-200 p-6' },
+                            React.createElement('div', { className: 'flex items-center justify-between mb-3' },
+                                React.createElement('label', { className: 'block text-sm font-semibold text-slate-900' }, 'How complex is this task?'),
+                                React.createElement('button', {
+                                    onClick: () => setStep('complexity-helper'),
+                                    className: 'text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-semibold hover:bg-blue-200'
+                                }, '❓ Not sure?')
+                            ),
+                            React.createElement('div', { className: 'grid grid-cols-2 gap-3' },
+                                ['simple', 'medium', 'complex', 'critical'].map((level) =>
+                                    React.createElement('button', {
+                                        key: level,
+                                        onClick: () => {
+                                            setAnswers({ ...answers, complexity: level });
+                                            setComplexityHelperStep(0);
+                                        },
+                                        className: `p-3 rounded-lg border-2 transition-all text-sm font-medium ${
+                                            answers.complexity === level
+                                                ? 'border-blue-500 bg-blue-50 text-blue-900'
+                                                : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                                        }`
+                                    }, level.charAt(0).toUpperCase() + level.slice(1))
+                                )
+                            )
+                        ),
+
+                        React.createElement('div', { className: 'bg-white rounded-xl shadow-sm border border-slate-200 p-6' },
+                            React.createElement('label', { className: 'block text-sm font-semibold text-slate-900 mb-3' }, 'How fast do you need an answer?'),
+                            React.createElement('div', { className: 'grid grid-cols-3 gap-3' },
+                                [{ id: 'instant', label: 'Instant', desc: 'Now' }, { id: 'fast', label: 'Fast', desc: '< 1 min' }, { id: 'thorough', label: 'Thorough', desc: 'Take your time' }].map((opt) =>
+                                    React.createElement('button', {
+                                        key: opt.id,
+                                        onClick: () => setAnswers({ ...answers, speed: opt.id }),
+                                        className: `p-3 rounded-lg border-2 transition-all text-sm ${answers.speed === opt.id ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white hover:border-slate-300'}`
+                                    }, React.createElement('div', { className: 'font-medium text-slate-900' }, opt.label), React.createElement('div', { className: 'text-xs text-slate-500' }, opt.desc))
+                                )
+                            )
+                        ),
+
+                        React.createElement('div', { className: 'bg-white rounded-xl shadow-sm border border-slate-200 p-6' },
+                            React.createElement('label', { className: 'block text-sm font-semibold text-slate-900 mb-3' }, 'Cost sensitivity?'),
+                            React.createElement('div', { className: 'grid grid-cols-3 gap-3' },
+                                [{ id: 'very', label: 'Very sensitive', icon: '$' }, { id: 'somewhat', label: 'Moderate', icon: '$$' }, { id: 'flexible', label: 'Flexible', icon: '$$$' }].map((opt) =>
+                                    React.createElement('button', {
+                                        key: opt.id,
+                                        onClick: () => setAnswers({ ...answers, budget: opt.id }),
+                                        className: `p-3 rounded-lg border-2 transition-all text-sm ${answers.budget === opt.id ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white hover:border-slate-300'}`
+                                    }, React.createElement('div', { className: 'text-lg font-bold text-slate-600' }, opt.icon), React.createElement('div', { className: 'font-medium text-slate-900' }, opt.label))
+                                )
+                            )
+                        ),
+
+                        React.createElement('div', { className: 'bg-white rounded-xl shadow-sm border border-slate-200 p-6' },
+                            React.createElement('label', { className: 'block text-sm font-semibold text-slate-900 mb-3' }, 'How much context?'),
+                            React.createElement('div', { className: 'grid grid-cols-2 gap-3' },
+                                [{ id: 'small', label: 'Small', desc: 'A few paragraphs' }, { id: 'medium', label: 'Medium', desc: 'One document' }, { id: 'large', label: 'Large', desc: 'Multiple files' }, { id: 'massive', label: 'Massive', desc: 'Entire codebase' }].map((opt) =>
+                                    React.createElement('button', {
+                                        key: opt.id,
+                                        onClick: () => setAnswers({ ...answers, context: opt.id }),
+                                        className: `p-3 rounded-lg border-2 transition-all text-sm ${answers.context === opt.id ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white hover:border-slate-300'}`
+                                    }, React.createElement('div', { className: 'font-medium text-slate-900' }, opt.label), React.createElement('div', { className: 'text-xs text-slate-500' }, opt.desc))
+                                )
+                            )
+                        ),
+
+                        React.createElement('div', { className: 'bg-white rounded-xl shadow-sm border border-slate-200 p-6' },
+                            React.createElement('label', { className: 'block text-sm font-semibold text-slate-900 mb-3' }, 'How often will you do this?'),
+                            React.createElement('div', { className: 'grid grid-cols-3 gap-3' },
+                                [{ id: 'high', label: 'Often', desc: 'Daily' }, { id: 'medium', label: 'Sometimes', desc: 'Weekly' }, { id: 'low', label: 'Rarely', desc: 'One-off' }].map((opt) =>
+                                    React.createElement('button', {
+                                        key: opt.id,
+                                        onClick: () => setAnswers({ ...answers, volume: opt.id }),
+                                        className: `p-3 rounded-lg border-2 transition-all text-sm ${answers.volume === opt.id ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white hover:border-slate-300'}`
+                                    }, React.createElement('div', { className: 'font-medium text-slate-900' }, opt.label), React.createElement('div', { className: 'text-xs text-slate-500' }, opt.desc))
+                                )
+                            )
+                        ),
+
+                        React.createElement('div', { className: 'bg-white rounded-xl shadow-sm border border-slate-200 p-6' },
+                            React.createElement('label', { className: 'block text-sm font-semibold text-slate-900 mb-3' }, 'How important is accuracy?'),
+                            React.createElement('div', { className: 'grid grid-cols-3 gap-3' },
+                                [{ id: 'good-enough', label: 'Good enough', desc: 'For brainstorming' }, { id: 'reliable', label: 'Reliable', desc: 'Production work' }, { id: 'mission-critical', label: 'Critical', desc: 'High stakes' }].map((opt) =>
+                                    React.createElement('button', {
+                                        key: opt.id,
+                                        onClick: () => setAnswers({ ...answers, accuracy: opt.id }),
+                                        className: `p-3 rounded-lg border-2 transition-all text-sm ${answers.accuracy === opt.id ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white hover:border-slate-300'}`
+                                    }, React.createElement('div', { className: 'font-medium text-slate-900' }, opt.label), React.createElement('div', { className: 'text-xs text-slate-500' }, opt.desc))
+                                )
+                            )
+                        ),
+
+                        React.createElement('button', {
+                            onClick: () => setStep('result'),
+                            disabled: !allAnswered,
+                            className: `w-full py-4 px-6 rounded-xl font-semibold text-white flex items-center justify-center gap-2 transition-all ${allAnswered ? 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:shadow-lg cursor-pointer' : 'bg-slate-300 cursor-not-allowed'}`
+                        }, 'Get My Recommendation →')
+                    ),
+
+                    step === 'complexity-helper' && React.createElement('div', { className: 'space-y-6' },
+                        React.createElement('div', { className: 'bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 border border-blue-200' },
+                            React.createElement('h2', { className: 'text-2xl font-bold text-slate-900 mb-2' }, 'Let\'s Figure Out Complexity'),
+                            React.createElement('p', { className: 'text-slate-700' }, 'Answer these questions to determine if you need a premium model.')
+                        ),
+
+                        complexityHelperStep < complexityHelperQuestions.length && React.createElement('div', { className: 'bg-white rounded-xl shadow-sm border border-slate-200 p-8' },
+                            React.createElement('h3', { className: 'text-xl font-semibold text-slate-900 mb-2' }, complexityHelperQuestions[complexityHelperStep].question),
+                            React.createElement('p', { className: 'text-sm text-slate-600 mb-6 bg-slate-50 p-3 rounded-lg' }, '💡 ' + complexityHelperQuestions[complexityHelperStep].help),
+                            React.createElement('div', { className: 'flex gap-4' },
+                                React.createElement('button', {
+                                    onClick: () => {
+                                        setHelperAnswers({ ...helperAnswers, [complexityHelperQuestions[complexityHelperStep].id]: false });
+                                        setComplexityHelperStep(complexityHelperStep + 1);
+                                    },
+                                    className: 'flex-1 py-3 px-4 rounded-lg border-2 border-slate-300 text-slate-900 font-semibold hover:bg-slate-50'
+                                }, 'No'),
+                                React.createElement('button', {
+                                    onClick: () => {
+                                        setHelperAnswers({ ...helperAnswers, [complexityHelperQuestions[complexityHelperStep].id]: true });
+                                        setComplexityHelperStep(complexityHelperStep + 1);
+                                    },
+                                    className: 'flex-1 py-3 px-4 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600'
+                                }, 'Yes')
+                            )
+                        ),
+
+                        complexityHelperStep === complexityHelperQuestions.length && React.createElement('div', { className: 'space-y-4' },
+                            React.createElement('div', { className: 'bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200' },
+                                React.createElement('h3', { className: 'font-bold text-slate-900 mb-2' }, 'Based on your answers:'),
+                                (() => {
+                                    const yesCount = Object.values(helperAnswers).filter(v => v === true).length;
+                                    if (yesCount >= 3) {
+                                        return React.createElement('div', null,
+                                            React.createElement('p', { className: 'text-slate-900 font-semibold mb-2' }, 'You probably need a premium model'),
+                                            React.createElement('p', { className: 'text-slate-700 text-sm' }, 'Use Opus for complex reasoning and research work.')
+                                        );
+                                    } else if (yesCount >= 1) {
+                                        return React.createElement('div', null,
+                                            React.createElement('p', { className: 'text-slate-900 font-semibold mb-2' }, 'Sonnet is your sweet spot'),
+                                            React.createElement('p', { className: 'text-slate-700 text-sm' }, 'It has enough power without the Opus price tag.')
+                                        );
+                                    } else {
+                                        return React.createElement('div', null,
+                                            React.createElement('p', { className: 'text-slate-900 font-semibold mb-2' }, 'Haiku or Sonnet will work'),
+                                            React.createElement('p', { className: 'text-slate-700 text-sm' }, 'Save money with the faster, cheaper option.')
+                                        );
+                                    }
+                                })()
+                            ),
+                            React.createElement('div', { className: 'flex gap-4' },
+                                React.createElement('button', {
+                                    onClick: () => setStep('questions'),
+                                    className: 'w-full py-3 px-4 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600'
+                                }, 'Back to Main Form')
+                            )
+                        )
+                    ),
+
+                    step === 'result' && recommended && React.createElement('div', { className: 'space-y-6' },
+                        React.createElement('div', { className: `bg-gradient-to-br ${models[recommended].color} rounded-xl shadow-lg p-8 text-white` },
+                            React.createElement('p', { className: 'text-sm font-semibold opacity-90 mb-1' }, 'RECOMMENDED FOR YOU'),
+                            React.createElement('h2', { className: 'text-4xl font-bold mb-4' }, models[recommended].name),
+                            React.createElement('p', { className: 'text-lg opacity-90' }, models[recommended].description)
+                        ),
+
+                        React.createElement('div', { className: 'grid grid-cols-2 gap-4' },
+                            React.createElement('div', { className: 'bg-white rounded-lg p-4 border border-slate-200' },
+                                React.createElement('p', { className: 'text-xs text-slate-600 font-semibold mb-1' }, 'BEST FOR'),
+                                React.createElement('ul', { className: 'space-y-1' },
+                                    models[recommended].bestFor.map((item, i) => React.createElement('li', { key: i, className: 'text-sm text-slate-900' }, '• ' + item))
+                                )
+                            ),
+                            React.createElement('div', { className: 'bg-white rounded-lg p-4 border border-slate-200' },
+                                React.createElement('p', { className: 'text-xs text-slate-600 font-semibold mb-1' }, 'SPECS'),
+                                React.createElement('div', { className: 'space-y-1 text-sm text-slate-900' },
+                                    React.createElement('p', null, React.createElement('strong', null, 'Speed: '), models[recommended].speed),
+                                    React.createElement('p', null, React.createElement('strong', null, 'Cost/task: '), models[recommended].costPerTask)
+                                )
+                            )
+                        ),
+
+                        React.createElement('div', { className: 'bg-white rounded-xl border border-slate-200 p-6' },
+                            React.createElement('div', { className: 'flex items-center justify-between mb-4' },
+                                React.createElement('h3', { className: 'text-lg font-semibold text-slate-900' }, 'Your Custom Prompt'),
+                                React.createElement('button', {
+                                    onClick: copyPrompt,
+                                    className: `p-2 rounded-lg transition-all ${copied ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`
+                                }, copied ? '✓' : '📋')
+                            ),
+                            React.createElement('pre', { className: 'bg-slate-50 p-4 rounded-lg text-xs text-slate-800 overflow-x-auto border border-slate-200 whitespace-pre-wrap break-words max-h-96' }, generatePrompt()),
+                            React.createElement('p', { className: 'text-xs text-slate-600 mt-3' }, copied ? '✓ Copied to clipboard!' : 'Click the copy icon to copy this prompt')
+                        ),
+
+                        React.createElement('button', {
+                            onClick: reset,
+                            className: 'w-full py-3 px-6 rounded-xl font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 transition-all'
+                        }, '↻ Start Over')
+                    )
+                )
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(ClaudeModelAdvisor));
+    </script>
+</body>
+</html>
