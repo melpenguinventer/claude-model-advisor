@@ -31,7 +31,7 @@ An interactive tool to compare and choose the right AI model for your task. Comp
 5. Paste into your preferred AI tool and start working
 
 ## Try It Online
-[Visit the live tool](https://melpenguinventer.github.io/claude-model-advisor)
+[Visit the live tool](https://melpenguinventer.github.io/ai-model-advisor)
 
 ## Coming Soon
 - Llama and other open-source models
