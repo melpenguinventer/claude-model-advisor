@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Choose the right AI model for your task - Claude, ChatGPT, Gemini, and more">
+    <meta name="description" content="Choose the right AI model - Claude, ChatGPT, Gemini, and more">
     <title>AI Model Advisor - Find Your Perfect Model</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -16,388 +16,564 @@
         <div class="max-w-2xl mx-auto">
             <div class="mb-8">
                 <h1 class="text-4xl md:text-5xl font-bold text-slate-900 mb-2">AI Model Advisor</h1>
-                <p class="text-lg text-slate-600">Compare Claude, ChatGPT, Gemini, and more. Get personalized recommendations and optimized prompts.</p>
+                <p class="text-lg text-slate-600">Find the perfect AI model for your task in seconds.</p>
             </div>
             <div id="app"></div>
         </div>
     </div>
 
     <script>
-        class ClaudeAdvisor {
+        class AIModelAdvisor {
             constructor() {
-                this.step = 'questions';
+                this.step = 'task'; // task, details, result
                 this.answers = {
                     taskDescription: '',
                     complexity: null,
                     speed: null,
-                    budget: null,
                     context: null,
                     volume: null,
                     accuracy: null,
+                    confidential: null,
                 };
+                this.complexityHelperStep = 0; // 0 = hidden, -1 = showing
+                this.helperAnswers = { couldDoManually: null, wouldSonnetWork: null, researchNeeded: null, complexReasoning: null };
                 this.copied = false;
-                this.complexityHelperStep = 0;
-                this.helperAnswers = {
-                    couldDoManually: null,
-                    wouldSonnetWork: null,
-                    researchNeeded: null,
-                    complexReasoning: null,
-                };
 
                 this.models = {
-                    haiku_free: {
-                        name: 'Claude Haiku 4.5 (Free)',
-                        description: 'Free tier - fast and lightweight',
-                        color: 'from-yellow-300 to-amber-400',
-                        provider: 'Anthropic',
-                        bestFor: ['Quick tasks', 'Learning', 'Experimentation', 'Light use'],
-                        costs: 'Free',
-                        speed: 'Fastest (50+ tok/s)',
-                        accuracy: '73.3%',
-                        context: '200K tokens',
-                        use: 'When you want to try things out for free',
-                    },
-                    haiku: {
-                        name: 'Claude Haiku 4.5',
-                        description: 'Lightning-fast and affordable',
-                        color: 'from-amber-400 to-orange-500',
-                        provider: 'Anthropic',
-                        bestFor: ['Quick summaries', 'Simple tasks', 'Data extraction', 'Classification'],
-                        costs: '$0.80 input / $4 output per 1M tokens',
-                        speed: 'Fastest (50+ tok/s)',
-                        accuracy: '73.3% (SWE-bench)',
-                        context: '200K tokens',
-                        use: 'When speed and cost matter more than depth',
-                    },
-                    sonnet: {
-                        name: 'Claude Sonnet 4.6',
-                        description: 'The reliable workhorse',
-                        color: 'from-blue-400 to-cyan-500',
-                        provider: 'Anthropic',
-                        bestFor: ['Feature development', 'Content creation', 'Code review', 'Analysis'],
-                        costs: '$3 input / $15 output per 1M tokens',
-                        speed: 'Fast (20+ tok/s)',
-                        accuracy: '~80% (SWE-bench)',
-                        context: '200K or 1M tokens',
-                        use: 'Your default for most work—best value',
-                    },
-                    opus: {
-                        name: 'Claude Opus 4.6',
-                        description: 'Deep thinking for complex problems',
-                        color: 'from-purple-400 to-pink-500',
-                        provider: 'Anthropic',
-                        bestFor: ['Architecture decisions', 'Critical reviews', 'Multi-step reasoning', 'Large codebase analysis'],
-                        costs: '$5 input / $25 output per 1M tokens',
-                        speed: 'Slower (10+ tok/s)',
-                        accuracy: '80.9% (SWE-bench)',
-                        context: '1M tokens (extended)',
-                        use: 'Reserve for truly complex, high-stakes work',
-                    },
-                    gpt4o_mini: {
-                        name: 'GPT-4o mini (Free)',
-                        description: 'Free lightweight model from OpenAI',
-                        color: 'from-emerald-300 to-green-400',
-                        provider: 'OpenAI',
-                        bestFor: ['Quick tasks', 'Learning', 'Simple reasoning', 'Free experimentation'],
-                        costs: 'Free (limited)',
-                        speed: 'Very fast (30+ tok/s)',
-                        accuracy: '~75%',
-                        context: '128K tokens',
-                        use: 'Free tier with decent capability',
-                    },
-                    gpt4o: {
-                        name: 'GPT-4o',
-                        description: 'Advanced reasoning with vision capabilities',
-                        color: 'from-green-400 to-emerald-500',
-                        provider: 'OpenAI',
-                        bestFor: ['Vision/image analysis', 'Complex reasoning', 'Multimodal tasks', 'Creative writing'],
-                        costs: '$5 input / $15 output per 1M tokens',
-                        speed: 'Moderate (15+ tok/s)',
-                        accuracy: '~82% (Reasoning)',
-                        context: '128K tokens',
-                        use: 'For multimodal tasks and vision work',
-                    },
-                    gpt4turbo: {
-                        name: 'GPT-4 Turbo',
-                        description: 'Cost-effective reasoning',
-                        color: 'from-green-500 to-teal-600',
-                        provider: 'OpenAI',
-                        bestFor: ['Cost-conscious work', 'Coding', 'Analysis', 'General tasks'],
-                        costs: '$3 input / $15 output per 1M tokens',
-                        speed: 'Moderate (15+ tok/s)',
-                        accuracy: '~80%',
-                        context: '128K tokens',
-                        use: 'Budget-friendly reasoning alternative',
-                    },
-                    gemini_free: {
-                        name: 'Gemini (Free)',
-                        description: 'Google\'s free multimodal model',
-                        color: 'from-cyan-300 to-blue-400',
-                        provider: 'Google',
-                        bestFor: ['Free multimodal tasks', 'Quick analysis', 'Learning', 'Experimentation'],
-                        costs: 'Free',
-                        speed: 'Very fast (40+ tok/s)',
-                        accuracy: '~75%',
-                        context: '1M tokens',
-                        use: 'Free tier with excellent value',
-                    },
-                    gemini: {
-                        name: 'Gemini Pro 2.0',
-                        description: 'Fast multimodal with long context',
-                        color: 'from-blue-500 to-purple-600',
-                        provider: 'Google',
-                        bestFor: ['Quick analysis', 'Multimodal tasks', 'Long documents', 'Budget work'],
-                        costs: '$0.075 input / $0.30 output per 1M tokens',
-                        speed: 'Very fast (40+ tok/s)',
-                        accuracy: '~78%',
-                        context: '1M tokens',
-                        use: 'Best value for long-context and multimodal',
-                    },
+                    haiku_free: { name: 'Claude Haiku 4.5 (Free)', description: 'Free tier - fast and lightweight', color: 'from-yellow-300 to-amber-400', provider: 'Anthropic', bestFor: ['Quick tasks', 'Learning', 'Experimentation', 'Light use'], costs: 'Free', speed: 'Fastest', accuracy: '73.3%', context: '200K tokens', tier: 'free', trust: 'high', pros: ['Private - no training data exposure', 'Fast', 'Free'], cons: ['Less capable than paid tiers', 'Limited reasoning ability'] },
+                    haiku: { name: 'Claude Haiku 4.5', description: 'Lightning-fast and affordable', color: 'from-amber-400 to-orange-500', provider: 'Anthropic', bestFor: ['Quick summaries', 'Simple tasks', 'Data extraction', 'Classification'], costs: '$0.80 input / $4 output per 1M tokens', speed: 'Fastest', accuracy: '73.3%', context: '200K tokens', tier: 'paid', trust: 'high', pros: ['Private - no training data exposure', 'Affordable', 'Fast'], cons: ['Less capable than Sonnet/Opus', 'Limited reasoning'] },
+                    sonnet: { name: 'Claude Sonnet 4.6', description: 'The reliable workhorse', color: 'from-blue-400 to-cyan-500', provider: 'Anthropic', bestFor: ['Feature development', 'Content creation', 'Code review', 'Analysis'], costs: '$3 input / $15 output per 1M tokens', speed: 'Fast', accuracy: '~80%', context: '200K or 1M tokens', tier: 'paid', trust: 'high', pros: ['Excellent balance of speed/quality', 'Private by default', 'Great for most tasks'], cons: ['Slower than Haiku', 'More expensive'] },
+                    opus: { name: 'Claude Opus 4.6', description: 'Deep thinking for complex problems', color: 'from-purple-400 to-pink-500', provider: 'Anthropic', bestFor: ['Architecture decisions', 'Critical reviews', 'Multi-step reasoning', 'Large codebase analysis'], costs: '$5 input / $25 output per 1M tokens', speed: 'Slower', accuracy: '80.9%', context: '1M tokens', tier: 'paid', trust: 'high', pros: ['Most capable model', 'Private by default', 'Best reasoning'], cons: ['Most expensive', 'Slower output'] },
+                    gpt4o_mini: { name: 'GPT-4o mini (Free)', description: 'Free lightweight from OpenAI', color: 'from-emerald-300 to-green-400', provider: 'OpenAI', bestFor: ['Quick tasks', 'Learning', 'Simple reasoning', 'Free experimentation'], costs: 'Free (limited)', speed: 'Very fast', accuracy: '~75%', context: '128K tokens', tier: 'free', trust: 'medium', pros: ['Free', 'Fast', 'Multimodal capable'], cons: ['May train on user data', 'Limited context window', 'Rate limited'] },
+                    gpt4o: { name: 'GPT-4o', description: 'Advanced reasoning with vision', color: 'from-green-400 to-emerald-500', provider: 'OpenAI', bestFor: ['Vision/image analysis', 'Complex reasoning', 'Multimodal tasks', 'Creative writing'], costs: '$5 input / $15 output per 1M tokens', speed: 'Moderate', accuracy: '~82%', context: '128K tokens', tier: 'paid', trust: 'medium', pros: ['Excellent vision capabilities', 'Strong reasoning', 'Multimodal'], cons: ['May use data for training', 'Smaller context window'] },
+                    gpt4turbo: { name: 'GPT-4 Turbo', description: 'Cost-effective reasoning', color: 'from-green-500 to-teal-600', provider: 'OpenAI', bestFor: ['Cost-conscious work', 'Coding', 'Analysis', 'General tasks'], costs: '$3 input / $15 output per 1M tokens', speed: 'Moderate', accuracy: '~80%', context: '128K tokens', tier: 'paid', trust: 'medium', pros: ['Good value', 'Solid reasoning', 'Reasonable cost'], cons: ['May use data for training', 'Smaller context window'] },
+                    gemini_free: { name: 'Gemini (Free)', description: 'Google\'s free multimodal model', color: 'from-cyan-300 to-blue-400', provider: 'Google', bestFor: ['Free multimodal tasks', 'Quick analysis', 'Learning', 'Experimentation'], costs: 'Free', speed: 'Very fast', accuracy: '~75%', context: '1M tokens', tier: 'free', trust: 'medium', pros: ['Huge context window', 'Free', 'Multimodal'], cons: ['May train on user data', 'Variable quality'] },
+                    gemini: { name: 'Gemini Pro 2.0', description: 'Fast multimodal with long context', color: 'from-blue-500 to-purple-600', provider: 'Google', bestFor: ['Quick analysis', 'Multimodal tasks', 'Long documents', 'Budget work'], costs: '$0.075 input / $0.30 output per 1M tokens', speed: 'Very fast', accuracy: '~78%', context: '1M tokens', tier: 'paid', trust: 'medium', pros: ['Massive context window', 'Very cheap', 'Multimodal capable'], cons: ['May use data for training', 'Variable reasoning'] },
+                    copilot_free: { name: 'Microsoft Copilot (Free)', description: 'Free web-based AI assistant', color: 'from-blue-300 to-indigo-400', provider: 'Microsoft', bestFor: ['Quick queries', 'Learning', 'Web search', 'Creative tasks'], costs: 'Free', speed: 'Very fast', accuracy: '~76%', context: '512K tokens', tier: 'free', trust: 'low', pros: ['Free', 'Web search capability', 'Easy to use'], cons: ['May train on conversations', 'Data privacy concerns', 'Limited privacy'] },
+                    copilot_pro: { name: 'Copilot Pro', description: 'Advanced reasoning with GPT-4', color: 'from-indigo-500 to-blue-600', provider: 'Microsoft', bestFor: ['Complex analysis', 'Advanced reasoning', 'Professional work', 'Nuanced tasks'], costs: '$20/month', speed: 'Moderate', accuracy: '~81%', context: '512K tokens', tier: 'paid', trust: 'low', pros: ['Powered by GPT-4', 'Advanced reasoning', 'Professional features'], cons: ['Privacy concerns', 'Monthly subscription', 'Limited transparency'] },
+                    llama2: { name: 'Llama 2', description: 'Meta\'s open source model', color: 'from-orange-400 to-red-500', provider: 'Meta', bestFor: ['Self-hosted deployment', 'Fine-tuning', 'Research', 'Cost-free inference'], costs: 'Free (open source)', speed: 'Fast (self-hosted)', accuracy: '~77%', context: '4K tokens', tier: 'free', trust: 'high', pros: ['Open source', 'No data sent to cloud', 'Can self-host', 'Fine-tunable'], cons: ['Requires local resources', 'Smaller context window', 'Setup complexity'] },
+                    llama3: { name: 'Llama 3', description: 'Meta\'s latest open source', color: 'from-orange-500 to-yellow-500', provider: 'Meta', bestFor: ['Self-hosted deployment', 'Fine-tuning', 'Research', 'Production inference'], costs: 'Free (open source)', speed: 'Fast (self-hosted)', accuracy: '~80%', context: '8K tokens', tier: 'free', trust: 'high', pros: ['Open source', 'Better than Llama 2', 'No cloud dependency', 'Larger context'], cons: ['Requires significant resources', 'Setup needed', 'Less mature ecosystem'] },
+                    mistral: { name: 'Mistral 7B', description: 'Fast open source model', color: 'from-orange-400 to-amber-500', provider: 'Mistral AI', bestFor: ['Cost-effective tasks', 'Self-hosting', 'Edge deployment', 'Fast inference'], costs: 'Free (open source)', speed: 'Very fast', accuracy: '~79%', context: '8K tokens', tier: 'free', trust: 'high', pros: ['Extremely fast', 'Open source', 'Lightweight', 'Good quality/speed ratio'], cons: ['Requires hosting', 'Smaller context', 'Less capable than larger models'] },
+                    mixtral: { name: 'Mixtral 8x7B', description: 'Mistral\'s mixture of experts', color: 'from-amber-400 to-yellow-500', provider: 'Mistral AI', bestFor: ['Balanced performance', 'Self-hosting', 'Multi-task inference', 'Cost-effective production'], costs: 'Free (open source)', speed: 'Fast', accuracy: '~81%', context: '32K tokens', tier: 'free', trust: 'high', pros: ['Open source', 'Balanced quality', 'Huge context window', 'Affordable'], cons: ['Requires hosting', 'Setup complexity'] },
+                    phi: { name: 'Microsoft Phi-3', description: 'Lightweight yet capable', color: 'from-blue-400 to-cyan-500', provider: 'Microsoft', bestFor: ['Edge devices', 'Mobile inference', 'Low-resource deployment', 'Efficient reasoning'], costs: 'Free (open source)', speed: 'Extremely fast', accuracy: '~76%', context: '4K tokens', tier: 'free', trust: 'high', pros: ['Tiny model size', 'Mobile friendly', 'Open source', 'Very fast'], cons: ['Limited capability', 'Small context window', 'Smaller knowledgebase'] },
+                    qwen: { name: 'Qwen 72B', description: 'Alibaba\'s powerful model', color: 'from-red-400 to-orange-500', provider: 'Alibaba', bestFor: ['Chinese language tasks', 'Multilingual work', 'Research', 'Complex reasoning'], costs: 'Free (open source)', speed: 'Moderate', accuracy: '~82%', context: '32K tokens', tier: 'free', trust: 'high', pros: ['Open source', 'Excellent for Chinese', 'Strong multilingual', 'High quality'], cons: ['Requires hosting', 'More resource intensive'] },
+                    perplexity: { name: 'Perplexity AI', description: 'Web search focused AI', color: 'from-purple-500 to-pink-500', provider: 'Perplexity', bestFor: ['Web research', 'Current information', 'Citation retrieval', 'Real-time queries'], costs: '$20/month (Pro)', speed: 'Moderate', accuracy: '~79%', context: '1M tokens', tier: 'paid', trust: 'medium', pros: ['Real-time web search', 'Source citations', 'Long context', 'Research focused'], cons: ['Requires subscription', 'Data privacy concerns', 'Dependent on search results'] },
+                    groq: { name: 'Groq (via API)', description: 'Ultra-fast inference', color: 'from-cyan-500 to-blue-500', provider: 'Groq', bestFor: ['Low-latency tasks', 'Real-time applications', 'Streaming', 'Fast production inference'], costs: '$0.002-0.008 per 1K tokens', speed: 'Fastest (4+ tok/s)', accuracy: '~78%', context: '8K tokens', tier: 'paid', trust: 'medium', pros: ['Extremely fast inference', 'Low latency', 'Affordable', 'Great for streaming'], cons: ['Limited model selection', 'Smaller context', 'Dependent on API'] },
+                    together_mistral: { name: 'Mistral (via Together)', description: 'Mistral via Together API', color: 'from-orange-400 to-amber-500', provider: 'Together AI', bestFor: ['Budget inference', 'Open model access', 'Flexible hosting', 'Scalable deployment'], costs: '$0.2-2 per 1M tokens', speed: 'Fast', accuracy: '~79%', context: '8K tokens', tier: 'paid', trust: 'medium', pros: ['Access multiple models', 'Affordable', 'No setup needed', 'Reliable hosting'], cons: ['Third-party dependency', 'Less control', 'Rate limits apply'] },
+                    bedrock_claude: { name: 'Claude (via AWS Bedrock)', description: 'Claude through AWS', color: 'from-orange-500 to-yellow-500', provider: 'AWS', bestFor: ['Enterprise deployment', 'AWS integration', 'VPC-private inference', 'Compliance-heavy work'], costs: '$0.80-5 per 1M tokens', speed: 'Moderate', accuracy: '~80%', context: '1M tokens', tier: 'paid', trust: 'high', pros: ['Enterprise grade', 'VPC private', 'AWS integration', 'Compliance ready'], cons: ['AWS dependency', 'Setup required', 'Higher cost overhead'] },
+                    bedrock_llama: { name: 'Llama 2 (via AWS Bedrock)', description: 'Llama via AWS managed service', color: 'from-orange-400 to-red-500', provider: 'AWS', bestFor: ['Enterprise open source', 'AWS integration', 'VPC deployment', 'Managed infrastructure'], costs: '$0.75 per 1M tokens', speed: 'Fast', accuracy: '~77%', context: '4K tokens', tier: 'paid', trust: 'high', pros: ['AWS managed', 'Enterprise ready', 'VPC private', 'No setup'], cons: ['AWS locked', 'Higher cost', 'Limited flexibility'] },
+                    huggingface: { name: 'Hugging Face Models', description: 'Community model marketplace', color: 'from-yellow-400 to-orange-400', provider: 'Hugging Face', bestFor: ['Research', 'Fine-tuning', 'Custom models', 'Model exploration'], costs: 'Free to paid (varies)', speed: 'Varies', accuracy: 'Varies (70-85%)', context: 'Varies (4K-100K+)', tier: 'free', trust: 'high', pros: ['Massive model library', 'Open source focus', 'Community driven', 'Fine-tuning tools'], cons: ['Highly variable quality', 'Setup complexity', 'Limited consistency'] },
                 };
 
                 this.render();
             }
 
+            getRelevantQuestions() {
+                const taskLower = this.answers.taskDescription.toLowerCase();
+                const questions = [];
+
+                // Always ask about speed and accuracy
+                questions.push('speed', 'accuracy');
+
+                // Ask about context if relevant
+                const contextKeywords = ['code', 'document', 'paper', 'analyze', 'file', 'review', 'read', 'process', 'parse', 'extract', 'summarize', 'research', 'codebase', 'database', 'article', 'book', 'report'];
+                if (contextKeywords.some(kw => taskLower.includes(kw))) {
+                    questions.push('context');
+                }
+
+                // Ask about volume if it seems like a repeated/scalable task
+                const volumeKeywords = ['build', 'write', 'process', 'filter', 'extract', 'generate', 'create', 'batch', 'multiple', 'many', 'dozens', 'hundreds', 'daily', 'weekly', 'regularly', 'every'];
+                if (volumeKeywords.some(kw => taskLower.includes(kw))) {
+                    questions.push('volume');
+                }
+
+                return questions;
+            }
+
             scoreModel() {
                 if (!this.answers.taskDescription.trim()) return null;
-                let scores = { haiku: 0, sonnet: 0, opus: 0, gpt4o: 0, gpt4turbo: 0, gemini: 0 };
-                let finalComplexity = this.answers.complexity;
+                let scores = { haiku_free: 0, haiku: 0, sonnet: 0, opus: 0, gpt4o_mini: 0, gpt4o: 0, gpt4turbo: 0, gemini_free: 0, gemini: 0, copilot_free: 0, copilot_pro: 0, llama2: 0, llama3: 0, mistral: 0, mixtral: 0, phi: 0, qwen: 0, perplexity: 0, groq: 0, together_mistral: 0, bedrock_claude: 0, bedrock_llama: 0, huggingface: 0 };
+                let complexity = this.answers.complexity;
+
                 if (this.complexityHelperStep > 0) {
                     const helperScore = Object.values(this.helperAnswers).filter(v => v === true).length;
-                    if (helperScore >= 3) finalComplexity = 'complex';
-                    else if (helperScore >= 2) finalComplexity = 'medium';
-                    else finalComplexity = 'simple';
+                    if (helperScore >= 3) complexity = 'complex';
+                    else if (helperScore >= 2) complexity = 'medium';
+                    else complexity = 'simple';
                 }
-                if (finalComplexity === 'simple') { scores.haiku += 3; scores.gemini += 2; }
-                if (finalComplexity === 'medium') { scores.sonnet += 3; scores.gpt4turbo += 2; }
-                if (finalComplexity === 'complex') { scores.opus += 3; scores.gpt4o += 2; }
-                if (finalComplexity === 'critical') { scores.opus += 4; scores.gpt4o += 2; }
-                if (this.answers.speed === 'instant') { scores.haiku += 2; scores.gemini += 3; }
-                if (this.answers.speed === 'fast') { scores.sonnet += 2; scores.gpt4turbo += 1; }
-                if (this.answers.speed === 'thorough') { scores.opus += 1; scores.gpt4o += 1; }
-                if (this.answers.budget === 'very') { scores.haiku += 2; scores.gemini += 3; }
-                if (this.answers.budget === 'somewhat') { scores.sonnet += 2; scores.gpt4turbo += 2; }
-                if (this.answers.budget === 'flexible') { scores.opus += 1; scores.gpt4o += 1; }
-                if (this.answers.context === 'small') { scores.haiku += 1; scores.gpt4turbo += 1; }
-                if (this.answers.context === 'medium') { scores.sonnet += 1; scores.gpt4o += 1; }
-                if (this.answers.context === 'large') { scores.sonnet += 2; scores.gpt4o += 1; }
-                if (this.answers.context === 'massive') { scores.opus += 3; scores.gemini += 3; }
-                if (this.answers.volume === 'high') { scores.haiku += 1; scores.gemini += 2; }
+
+                const taskLower = this.answers.taskDescription.toLowerCase();
+                const isVision = taskLower.includes('vision') || taskLower.includes('image') || taskLower.includes('photo') || taskLower.includes('picture');
+                const isCoding = taskLower.includes('code') || taskLower.includes('debug') || taskLower.includes('script');
+                const isWriting = taskLower.includes('write') || taskLower.includes('blog') || taskLower.includes('article') || taskLower.includes('story');
+                const isAnalysis = taskLower.includes('analyze') || taskLower.includes('summary') || taskLower.includes('research');
+                const isWebSearch = taskLower.includes('search') || taskLower.includes('current') || taskLower.includes('latest') || taskLower.includes('recent');
+                const isEmbedded = taskLower.includes('edge') || taskLower.includes('mobile') || taskLower.includes('device') || taskLower.includes('lightweight');
+                const isMultilingual = taskLower.includes('chinese') || taskLower.includes('multilingual') || taskLower.includes('international');
+                const needsHosting = taskLower.includes('self-hosted') || taskLower.includes('self-host') || taskLower.includes('deploy') || taskLower.includes('private');
+                const needsSpeed = taskLower.includes('latency') || taskLower.includes('real-time') || taskLower.includes('stream');
+
+                if (complexity === 'simple') { scores.haiku_free += 3; scores.haiku += 3; scores.gpt4o_mini += 2; scores.gemini_free += 2; scores.copilot_free += 2; scores.phi += 3; scores.mistral += 2; }
+                if (complexity === 'medium') { scores.sonnet += 3; scores.gpt4turbo += 2; scores.copilot_free += 1; scores.llama3 += 1; scores.mixtral += 2; }
+                if (complexity === 'complex') { scores.opus += 3; scores.gpt4o += 2; scores.copilot_pro += 2; scores.qwen += 2; scores.mixtral += 1; }
+                if (complexity === 'critical') { scores.opus += 4; scores.gpt4o += 2; scores.copilot_pro += 2; scores.bedrock_claude += 2; }
+
+                if (this.answers.speed === 'instant') { scores.haiku_free += 2; scores.haiku += 2; scores.gemini_free += 3; scores.gpt4o_mini += 2; scores.copilot_free += 2; scores.phi += 3; scores.groq += 3; scores.mistral += 2; }
+                if (this.answers.speed === 'fast') { scores.sonnet += 2; scores.gpt4turbo += 1; scores.mixtral += 1; scores.together_mistral += 1; }
+                if (this.answers.speed === 'thorough') { scores.opus += 1; scores.gpt4o += 1; scores.copilot_pro += 1; scores.bedrock_claude += 1; }
+
+                if (this.answers.context === 'small') { scores.haiku_free += 1; scores.gpt4o_mini += 1; scores.phi += 2; }
+                if (this.answers.context === 'medium') { scores.sonnet += 1; scores.gpt4o += 1; scores.llama3 += 1; }
+                if (this.answers.context === 'large') { scores.sonnet += 2; scores.gpt4o += 1; scores.mixtral += 1; }
+                if (this.answers.context === 'massive') { scores.opus += 3; scores.gemini += 3; scores.gemini_free += 2; scores.mixtral += 2; scores.perplexity += 2; }
+
+                if (this.answers.volume === 'high') { scores.haiku_free += 1; scores.gemini_free += 2; scores.groq += 2; }
                 if (this.answers.volume === 'medium') { scores.sonnet += 1; scores.gpt4turbo += 1; }
                 if (this.answers.volume === 'low') { scores.opus += 1; scores.gpt4o += 1; }
-                if (this.answers.accuracy === 'good-enough') { scores.haiku += 1; scores.gemini += 1; }
-                if (this.answers.accuracy === 'reliable') { scores.sonnet += 1; scores.gpt4turbo += 1; }
-                if (this.answers.accuracy === 'mission-critical') { scores.opus += 3; scores.gpt4o += 2; }
-                const taskLower = this.answers.taskDescription.toLowerCase();
-                if (taskLower.includes('vision') || taskLower.includes('image') || taskLower.includes('photo')) {
-                    scores.gpt4o += 3;
-                    scores.gemini += 2;
-                }
+
+                if (this.answers.accuracy === 'good-enough') { scores.haiku_free += 1; scores.gemini_free += 1; scores.copilot_free += 1; scores.phi += 1; }
+                if (this.answers.accuracy === 'reliable') { scores.sonnet += 1; scores.gpt4turbo += 1; scores.copilot_pro += 1; scores.llama3 += 1; scores.mixtral += 1; }
+                if (this.answers.accuracy === 'mission-critical') { scores.opus += 3; scores.gpt4o += 2; scores.copilot_pro += 1; scores.bedrock_claude += 2; scores.qwen += 1; }
+
+                if (isVision) { scores.gpt4o += 3; scores.gemini += 2; scores.gpt4o_mini += 1; }
+                if (isCoding) { scores.sonnet += 2; scores.gpt4turbo += 1; scores.opus += 1; scores.llama3 += 1; }
+                if (isWriting) { scores.sonnet += 2; scores.opus += 1; scores.copilot_pro += 1; scores.gpt4o += 1; }
+                if (isAnalysis) { scores.sonnet += 1; scores.gpt4turbo += 1; scores.copilot_free += 1; scores.qwen += 1; }
+                if (isWebSearch) { scores.copilot_free += 3; scores.copilot_pro += 2; scores.perplexity += 3; }
+                if (isEmbedded) { scores.phi += 3; scores.mistral += 2; scores.llama2 += 1; }
+                if (isMultilingual) { scores.qwen += 3; scores.gemini += 1; }
+                if (needsHosting) { scores.llama2 += 2; scores.llama3 += 2; scores.mistral += 2; scores.mixtral += 1; scores.bedrock_claude += 1; }
+                if (needsSpeed) { scores.groq += 3; scores.mistral += 2; scores.phi += 2; }
+
                 const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
                 return sorted[0][0];
+            }
+
+            getRankedModels() {
+                const taskLower = this.answers.taskDescription.toLowerCase();
+                const isConfidential = this.answers.confidential === 'yes';
+                let ranked = [];
+
+                Object.entries(this.models).forEach(([key, m]) => {
+                    let score = 0;
+                    const complexity = this.answers.complexity;
+
+                    // Base scoring on complexity
+                    if (complexity === 'critical' && (key.includes('opus') || key.includes('pro') || key === 'gpt4o')) score += 3;
+                    if (complexity === 'complex' && (key.includes('opus') || key.includes('pro') || key === 'gpt4o')) score += 2;
+                    if (complexity === 'medium' && (key.includes('sonnet') || key.includes('turbo'))) score += 2;
+                    if (complexity === 'simple' && (key.includes('haiku') || key.includes('mini') || key.includes('free'))) score += 2;
+
+                    // Confidentiality penalty for questionable models
+                    if (isConfidential) {
+                        if (m.trust === 'low') score -= 10;
+                        if (m.trust === 'medium') score -= 3;
+                        if (m.tier === 'free' && m.trust !== 'high') score -= 5;
+                    }
+
+                    // Task-specific boosting
+                    if (taskLower.includes('vision') || taskLower.includes('image')) {
+                        if (key === 'gpt4o' || key === 'gpt4o_mini' || key.includes('gemini')) score += 2;
+                    }
+
+                    ranked.push({ key, model: m, score });
+                });
+
+                return ranked.sort((a, b) => b.score - a.score);
+            }
+
+            extractContextFromTask(taskDescription) {
+                const lower = taskDescription.toLowerCase();
+                const context = {
+                    technologies: [],
+                    requirements: [],
+                    constraints: [],
+                    domains: [],
+                    patterns: []
+                };
+
+                // Technology detection
+                const techMap = {
+                    'react': 'React framework', 'vue': 'Vue.js', 'angular': 'Angular',
+                    'python': 'Python', 'javascript': 'JavaScript', 'typescript': 'TypeScript',
+                    'java': 'Java', 'go': 'Go', 'rust': 'Rust', 'c++': 'C++',
+                    'nodejs': 'Node.js', 'django': 'Django', 'fastapi': 'FastAPI',
+                    'aws': 'AWS', 'gcp': 'Google Cloud', 'azure': 'Azure', 'kubernetes': 'Kubernetes',
+                    'docker': 'Docker', 'terraform': 'Terraform', 'sql': 'SQL', 'nosql': 'NoSQL',
+                    'postgresql': 'PostgreSQL', 'mongodb': 'MongoDB', 'redis': 'Redis',
+                    'graphql': 'GraphQL', 'rest': 'REST API', 'grpc': 'gRPC'
+                };
+
+                Object.entries(techMap).forEach(([tech, label]) => {
+                    if (lower.includes(tech)) context.technologies.push(label);
+                });
+
+                // Requirement detection
+                const requirementKeywords = {
+                    'scalable': 'Scalability required',
+                    'performance': 'Performance optimization needed',
+                    'secure': 'Security critical',
+                    'private': 'Privacy/confidentiality required',
+                    'real-time': 'Real-time processing',
+                    'offline': 'Offline capability',
+                    'mobile': 'Mobile compatible',
+                    'responsive': 'Responsive design',
+                    'accessible': 'Accessibility (a11y) required',
+                    'seo': 'SEO optimization',
+                    'multilingual': 'Multilingual support',
+                    'high availability': 'High availability needed'
+                };
+
+                Object.entries(requirementKeywords).forEach(([keyword, requirement]) => {
+                    if (lower.includes(keyword)) context.requirements.push(requirement);
+                });
+
+                // Constraint detection
+                const constraintKeywords = {
+                    'low latency': 'Low latency constraint',
+                    'edge': 'Edge deployment',
+                    'limited memory': 'Memory limited',
+                    'lightweight': 'Lightweight solution',
+                    'budget': 'Budget constrained',
+                    'legacy': 'Legacy system integration',
+                    'compliance': 'Compliance requirements'
+                };
+
+                Object.entries(constraintKeywords).forEach(([keyword, constraint]) => {
+                    if (lower.includes(keyword)) context.constraints.push(constraint);
+                });
+
+                // Domain detection
+                const domainKeywords = {
+                    'healthcare': 'Healthcare/medical', 'fintech': 'Financial services',
+                    'ecommerce': 'E-commerce', 'social': 'Social media', 'gaming': 'Gaming',
+                    'analytics': 'Analytics/BI', 'ml': 'Machine Learning', 'ai': 'AI',
+                    'iot': 'IoT', 'blockchain': 'Blockchain', 'nlp': 'Natural Language Processing',
+                    'computer vision': 'Computer Vision', 'cv': 'Computer Vision'
+                };
+
+                Object.entries(domainKeywords).forEach(([keyword, domain]) => {
+                    if (lower.includes(keyword)) context.domains.push(domain);
+                });
+
+                // Pattern/architecture detection
+                const patternKeywords = {
+                    'microservices': 'Microservices architecture',
+                    'monolith': 'Monolithic architecture',
+                    'event-driven': 'Event-driven architecture',
+                    'cqrs': 'CQRS pattern',
+                    'saga': 'Saga pattern',
+                    'circuit breaker': 'Circuit breaker pattern',
+                    'stream': 'Streaming architecture',
+                    'batch': 'Batch processing'
+                };
+
+                Object.entries(patternKeywords).forEach(([keyword, pattern]) => {
+                    if (lower.includes(keyword)) context.patterns.push(pattern);
+                });
+
+                return context;
             }
 
             generatePrompt() {
                 const recommended = this.scoreModel();
                 if (!recommended) return '';
-                const taskLower = this.answers.taskDescription.toLowerCase();
-                let modelInstructions = [];
-                if (this.answers.complexity === 'complex' || this.answers.complexity === 'critical') {
-                    modelInstructions.push('- Think step-by-step through this problem');
-                    modelInstructions.push('- Break down complex parts into smaller pieces');
-                    if (recommended === 'opus') {
-                        modelInstructions.push('- Use extended thinking for particularly complex sections');
+                
+                const taskDescription = this.answers.taskDescription;
+                const taskLower = taskDescription.toLowerCase();
+                const context = this.extractContextFromTask(taskDescription);
+                
+                let guidance = [];
+                let contextualTips = [];
+
+                // Core approach based on complexity
+                if (this.answers.complexity === 'critical' || this.answers.complexity === 'complex') {
+                    guidance.push('Think step-by-step through each component');
+                    guidance.push('Break down complex parts into smaller, manageable pieces');
+                }
+
+                // Technology-specific guidance
+                if (context.technologies.length > 0) {
+                    if (context.technologies.some(t => t.includes('React') || t.includes('Vue') || t.includes('Angular'))) {
+                        guidance.push('Provide clear, well-commented code examples');
+                        guidance.push('Explain component structure and data flow');
+                    }
+                    if (context.technologies.some(t => t.includes('TypeScript'))) {
+                        contextualTips.push('Include proper TypeScript types and interfaces');
+                        contextualTips.push('Explain generic types and advanced type patterns');
+                    }
+                    if (context.technologies.some(t => t.includes('Kubernetes') || t.includes('Docker'))) {
+                        contextualTips.push('Consider containerization best practices');
+                        contextualTips.push('Include resource allocation and scaling strategies');
                     }
                 }
+
+                // Requirement-specific guidance
+                if (context.requirements.some(r => r.includes('Scalability'))) {
+                    contextualTips.push('Design for horizontal and vertical scaling');
+                    contextualTips.push('Consider load balancing and caching strategies');
+                }
+                if (context.requirements.some(r => r.includes('Performance'))) {
+                    contextualTips.push('Optimize for speed and throughput');
+                    contextualTips.push('Include performance benchmarks and profiling considerations');
+                }
+                if (context.requirements.some(r => r.includes('Security'))) {
+                    contextualTips.push('Implement security best practices');
+                    contextualTips.push('Cover authentication, authorization, and data protection');
+                }
+                if (context.requirements.some(r => r.includes('Real-time'))) {
+                    contextualTips.push('Design for low-latency processing');
+                    contextualTips.push('Consider WebSockets, SSE, or message queues');
+                }
+                if (context.requirements.some(r => r.includes('Multilingual'))) {
+                    contextualTips.push('Plan for internationalization (i18n) and localization (l10n)');
+                    contextualTips.push('Consider language-specific formatting and character encoding');
+                }
+
+                // Constraint-specific guidance
+                if (context.constraints.some(c => c.includes('Edge'))) {
+                    contextualTips.push('Optimize for edge deployment (minimal dependencies)');
+                    contextualTips.push('Test on actual target hardware/edge devices');
+                }
+                if (context.constraints.some(c => c.includes('Memory'))) {
+                    contextualTips.push('Minimize memory footprint');
+                    contextualTips.push('Profile and optimize resource usage');
+                }
+                if (context.constraints.some(c => c.includes('Legacy'))) {
+                    contextualTips.push('Ensure backward compatibility');
+                    contextualTips.push('Document integration points with legacy systems');
+                }
+
+                // Domain-specific guidance
+                if (context.domains.some(d => d.includes('Healthcare'))) {
+                    contextualTips.push('Follow HIPAA and medical data protection standards');
+                    contextualTips.push('Include audit logging and compliance tracking');
+                }
+                if (context.domains.some(d => d.includes('Financial'))) {
+                    contextualTips.push('Implement robust error handling and transaction management');
+                    contextualTips.push('Include audit trails and compliance documentation');
+                }
+                if (context.domains.some(d => d.includes('Machine Learning') || d.includes('AI'))) {
+                    contextualTips.push('Include model training/inference considerations');
+                    contextualTips.push('Document data preprocessing and feature engineering');
+                }
+
+                // Pattern-specific guidance
+                if (context.patterns.some(p => p.includes('Microservices'))) {
+                    contextualTips.push('Plan for service discovery and inter-service communication');
+                    contextualTips.push('Design distributed transaction handling');
+                }
+                if (context.patterns.some(p => p.includes('Event-driven'))) {
+                    contextualTips.push('Design event schema and message contracts');
+                    contextualTips.push('Consider event ordering and idempotency');
+                }
+
+                // Accuracy-specific guidance
                 if (this.answers.accuracy === 'mission-critical') {
-                    modelInstructions.push('- Double-check facts and reasoning');
-                    modelInstructions.push('- Explain your confidence level for key claims');
-                    modelInstructions.push('- Flag any uncertainties or assumptions');
+                    guidance.push('Double-check facts and reasoning');
+                    guidance.push('Flag any uncertainties or assumptions');
                 } else if (this.answers.accuracy === 'reliable') {
-                    modelInstructions.push('- Aim for accuracy while being practical');
-                    modelInstructions.push('- Cite sources where relevant');
+                    guidance.push('Ensure accuracy while being practical');
                 }
-                if (this.answers.speed === 'thorough') {
-                    modelInstructions.push('- Prioritize depth and completeness over brevity');
-                    modelInstructions.push('- Include detailed explanations and reasoning');
-                } else if (this.answers.speed === 'instant') {
-                    modelInstructions.push('- Focus on quick, direct answers');
-                    modelInstructions.push('- Skip unnecessary details');
+
+                // Speed-specific guidance
+                if (this.answers.speed === 'instant') {
+                    guidance.push('Keep responses concise and direct');
+                } else if (this.answers.speed === 'thorough') {
+                    guidance.push('Prioritize depth and completeness');
                 }
-                if (this.answers.context === 'massive') {
-                    modelInstructions.push('- Use all the context provided to inform your response');
-                    modelInstructions.push('- Look for patterns and connections across the material');
+
+                let prompt = `# Task: ${taskDescription}
+
+## How to approach this
+${guidance.length > 0 ? guidance.map(g => `- ${g}`).join('\n') : '- Provide a clear, helpful response'}`;
+
+                if (contextualTips.length > 0) {
+                    prompt += `\n\n## Context-specific guidance\n${contextualTips.map(tip => `- ${tip}`).join('\n')}`;
                 }
-                if (this.answers.volume === 'high') {
-                    modelInstructions.push('- Optimize for clarity and reusability');
-                    modelInstructions.push('- Include patterns that work at scale');
-                }
-                if (taskLower.includes('blog') || taskLower.includes('write') || taskLower.includes('article')) {
-                    modelInstructions.push('- Write for clarity and engagement');
-                    modelInstructions.push('- Use concrete examples to illustrate points');
-                    modelInstructions.push('- Organize with a clear narrative flow');
-                } else if (taskLower.includes('code') || taskLower.includes('debug')) {
-                    modelInstructions.push('- Provide production-ready code');
-                    modelInstructions.push('- Include inline comments for non-obvious logic');
-                    if (recommended !== 'haiku') {
-                        modelInstructions.push('- Explain the reasoning behind your approach');
-                    }
-                }
-                let outputInstructions = [];
-                if (taskLower.includes('blog') || taskLower.includes('write') || taskLower.includes('article')) {
-                    outputInstructions.push('- Use clear headings and subheadings');
-                    outputInstructions.push('- Keep paragraphs focused (2-3 sentences max)');
-                    outputInstructions.push('- Include intro, body, and conclusion');
-                } else if (taskLower.includes('code') || taskLower.includes('debug')) {
-                    outputInstructions.push('- Code in clearly labeled blocks');
-                    outputInstructions.push('- Include explanatory text between code sections');
-                } else {
-                    outputInstructions.push('- Structure with clear sections');
-                    outputInstructions.push('- Use formatting (bold, bullets) for readability');
-                }
-                return `# Task: ${this.answers.taskDescription}\n\n## How to approach this\n${modelInstructions.join('\n')}\n\n## Format for your response\n${outputInstructions.join('\n')}`;
+
+                return prompt;
             }
 
             copyPrompt() {
                 const prompt = this.generatePrompt();
-                navigator.clipboard.writeText(prompt).then(() => {
+                
+                // Try modern clipboard API first
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(prompt).then(() => {
+                        this.copied = true;
+                        this.render();
+                        setTimeout(() => { this.copied = false; this.render(); }, 2000);
+                    }).catch(() => {
+                        // Fallback if clipboard fails
+                        this.fallbackCopy(prompt);
+                    });
+                } else {
+                    // Fallback for older browsers
+                    this.fallbackCopy(prompt);
+                }
+            }
+
+            fallbackCopy(text) {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
                     this.copied = true;
                     this.render();
-                    setTimeout(() => {
-                        this.copied = false;
-                        this.render();
-                    }, 2000);
-                }).catch(() => {
-                    const ta = document.createElement("textarea");
-                    ta.value = prompt;
-                    document.body.appendChild(ta);
-                    ta.select();
-                    document.execCommand("copy");
-                    document.body.removeChild(ta);
-                    this.copied = true;
-                    this.render();
-                    setTimeout(() => {
-                        this.copied = false;
-                        this.render();
-                    }, 2000);
-                });
+                    setTimeout(() => { this.copied = false; this.render(); }, 2000);
+                } catch (err) {
+                    console.error('Copy failed:', err);
+                }
+                document.body.removeChild(textarea);
             }
 
             reset() {
-                this.step = 'questions';
+                this.step = 'task';
+                this.answers = { taskDescription: '', complexity: null, speed: null, context: null, volume: null, accuracy: null, confidential: null };
                 this.complexityHelperStep = 0;
-                this.answers = {
-                    taskDescription: '',
-                    complexity: null,
-                    speed: null,
-                    budget: null,
-                    context: null,
-                    volume: null,
-                    accuracy: null,
-                };
                 this.helperAnswers = { couldDoManually: null, wouldSonnetWork: null, researchNeeded: null, complexReasoning: null };
                 this.render();
             }
 
             render() {
                 const app = document.getElementById('app');
-                if (this.step === 'questions') {
-                    app.innerHTML = this.renderQuestions();
-                } else if (this.step === 'complexity-helper') {
-                    app.innerHTML = this.renderComplexityHelper();
-                } else if (this.step === 'result') {
-                    app.innerHTML = this.renderResult();
-                }
+                if (this.step === 'task') app.innerHTML = this.renderTaskStep();
+                else if (this.step === 'details') app.innerHTML = this.renderDetailsStep();
+                else if (this.step === 'result') app.innerHTML = this.renderResult();
                 this.attachEvents();
             }
 
-            renderQuestions() {
-                const allAnswered = this.answers.taskDescription.trim() && this.answers.speed && this.answers.context && this.answers.volume && this.answers.accuracy && (this.answers.complexity || this.complexityHelperStep > 0);
+            renderTaskStep() {
                 return `
                 <div class="space-y-6">
                     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                         <label class="block text-sm font-semibold text-slate-900 mb-2">What do you want to do?</label>
-                        <textarea id="taskInput" class="w-full h-20 p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 placeholder-slate-400" placeholder="E.g., 'Write a blog post', 'Debug code', 'Analyze data'">${this.answers.taskDescription}</textarea>
+                        <textarea id="taskInput" class="w-full h-24 p-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 placeholder-slate-400" placeholder="E.g., 'Write a blog post', 'Debug TypeScript', 'Analyze an image', 'Build a React component'">${this.answers.taskDescription}</textarea>
                     </div>
+
                     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                        <div class="flex items-center justify-between mb-3">
-                            <label class="block text-sm font-semibold text-slate-900">How complex is this task?</label>
-                            <button id="notSureBtn" class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-semibold hover:bg-blue-200">❓ Not sure?</button>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
+                        <label class="block text-sm font-semibold text-slate-900 mb-3">How complex is this task?</label>
+                        <div class="grid grid-cols-4 gap-2 mb-4">
                             ${['simple', 'medium', 'complex', 'critical'].map(level => `<button class="complexity-btn p-3 rounded-lg border-2 transition-all text-sm font-medium" data-value="${level}" style="border-color: ${this.answers.complexity === level ? '#3b82f6' : '#e2e8f0'}; background-color: ${this.answers.complexity === level ? '#eff6ff' : '#ffffff'}; color: ${this.answers.complexity === level ? '#1e3a8a' : '#374151'};">${level.charAt(0).toUpperCase() + level.slice(1)}</button>`).join('')}
                         </div>
+                        <button id="helperToggle" class="text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full font-semibold hover:bg-blue-200 transition-all">${this.complexityHelperStep === -1 ? '✓ Close helper' : '❓ Not sure? Get help'}</button>
+                        ${this.complexityHelperStep === -1 ? this.renderInlineComplexityHelper() : ''}
                     </div>
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                        <label class="block text-sm font-semibold text-slate-900 mb-3">How fast do you need an answer?</label>
-                        <div class="grid grid-cols-3 gap-3">
-                            ${[{id: 'instant', label: 'Instant', desc: 'Now'}, {id: 'fast', label: 'Fast', desc: '< 1 min'}, {id: 'thorough', label: 'Thorough', desc: 'Take your time'}].map(opt => `<button class="speed-btn p-3 rounded-lg border-2 transition-all text-sm" data-value="${opt.id}" style="border-color: ${this.answers.speed === opt.id ? '#3b82f6' : '#e2e8f0'}; background-color: ${this.answers.speed === opt.id ? '#eff6ff' : '#ffffff'};"><div class="font-medium text-slate-900">${opt.label}</div><div class="text-xs text-slate-500">${opt.desc}</div></button>`).join('')}
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                        <label class="block text-sm font-semibold text-slate-900 mb-3">How much context?</label>
-                        <div class="grid grid-cols-2 gap-3">
-                            ${[{id: 'small', label: 'Small', desc: 'A few paragraphs'}, {id: 'medium', label: 'Medium', desc: 'One document'}, {id: 'large', label: 'Large', desc: 'Multiple files'}, {id: 'massive', label: 'Massive', desc: 'Entire codebase'}].map(opt => `<button class="context-btn p-3 rounded-lg border-2 transition-all text-sm" data-value="${opt.id}" style="border-color: ${this.answers.context === opt.id ? '#3b82f6' : '#e2e8f0'}; background-color: ${this.answers.context === opt.id ? '#eff6ff' : '#ffffff'};"><div class="font-medium text-slate-900">${opt.label}</div><div class="text-xs text-slate-500">${opt.desc}</div></button>`).join('')}
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                        <label class="block text-sm font-semibold text-slate-900 mb-3">How often will you do this?</label>
-                        <div class="grid grid-cols-3 gap-3">
-                            ${[{id: 'high', label: 'Often', desc: 'Daily'}, {id: 'medium', label: 'Sometimes', desc: 'Weekly'}, {id: 'low', label: 'Rarely', desc: 'One-off'}].map(opt => `<button class="volume-btn p-3 rounded-lg border-2 transition-all text-sm" data-value="${opt.id}" style="border-color: ${this.answers.volume === opt.id ? '#3b82f6' : '#e2e8f0'}; background-color: ${this.answers.volume === opt.id ? '#eff6ff' : '#ffffff'};"><div class="font-medium text-slate-900">${opt.label}</div><div class="text-xs text-slate-500">${opt.desc}</div></button>`).join('')}
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                        <label class="block text-sm font-semibold text-slate-900 mb-3">How important is accuracy?</label>
-                        <div class="grid grid-cols-3 gap-3">
-                            ${[{id: 'good-enough', label: 'Good enough', desc: 'For brainstorming'}, {id: 'reliable', label: 'Reliable', desc: 'Production work'}, {id: 'mission-critical', label: 'Critical', desc: 'High stakes'}].map(opt => `<button class="accuracy-btn p-3 rounded-lg border-2 transition-all text-sm" data-value="${opt.id}" style="border-color: ${this.answers.accuracy === opt.id ? '#3b82f6' : '#e2e8f0'}; background-color: ${this.answers.accuracy === opt.id ? '#eff6ff' : '#ffffff'};"><div class="font-medium text-slate-900">${opt.label}</div><div class="text-xs text-slate-500">${opt.desc}</div></button>`).join('')}
-                        </div>
-                    </div>
-                    <button id="recommendBtn" ${!allAnswered ? 'disabled style="background-color: #d1d5db; cursor: not-allowed;"' : 'style="background: linear-gradient(to right, #3b82f6, #06b6d4); cursor: pointer;"'} class="w-full py-4 px-6 rounded-xl font-semibold text-white flex items-center justify-center gap-2 hover:shadow-lg">Get My Recommendation →</button>
+
+                    <button id="nextBtn" class="w-full py-3 px-6 rounded-xl font-semibold text-white ${this.answers.taskDescription.trim() && this.answers.complexity ? 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:shadow-lg cursor-pointer' : 'bg-slate-300 cursor-not-allowed'}" ${!(this.answers.taskDescription.trim() && this.answers.complexity) ? 'disabled' : ''}>
+                        Continue →
+                    </button>
                 </div>
                 `;
             }
 
-            renderComplexityHelper() {
+            renderInlineComplexityHelper() {
                 const questions = [
-                    { id: 'couldDoManually', question: 'Could you reasonably do this task yourself (but time-consuming)?', help: 'If yes, it\'s probably simpler than you think.' },
-                    { id: 'wouldSonnetWork', question: 'Do you think Sonnet (the middle model) would probably work fine?', help: 'If yes, Sonnet is usually the sweet spot.' },
-                    { id: 'researchNeeded', question: 'Does this task require deep research, fact-checking, or learning new information?', help: 'If yes, premium models shine.' },
-                    { id: 'complexReasoning', question: 'Does this need multi-step reasoning or connecting lots of ideas together?', help: 'If yes, you might benefit from Opus.' },
+                    { id: 'couldDoManually', q: 'Could you reasonably do this yourself?' },
+                    { id: 'wouldSonnetWork', q: 'Would a free AI model be fine?' },
+                    { id: 'researchNeeded', q: 'Does this need deep research?' },
+                    { id: 'complexReasoning', q: 'Does this need multi-step reasoning?' },
                 ];
-                if (this.complexityHelperStep < questions.length) {
-                    const q = questions[this.complexityHelperStep];
-                    return `
-                    <div class="space-y-6">
-                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
-                            <h3 class="text-xl font-semibold text-slate-900 mb-2">${q.question}</h3>
-                            <p class="text-sm text-slate-600 mb-6 bg-slate-50 p-3 rounded-lg">💡 ${q.help}</p>
-                            <div class="flex gap-4">
-                                <button class="complexity-no flex-1 py-3 px-4 rounded-lg border-2 border-slate-300 text-slate-900 font-semibold hover:bg-slate-50">No</button>
-                                <button class="complexity-yes flex-1 py-3 px-4 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600">Yes</button>
-                            </div>
-                        </div>
-                    </div>
-                    `;
-                } else {
-                    const yesCount = Object.values(this.helperAnswers).filter(v => v === true).length;
-                    let message = '';
-                    if (yesCount >= 3) {
-                        message = '<p class="text-slate-900 font-semibold mb-2">You probably need a premium model</p><p class="text-slate-700 text-sm">Use Opus for complex reasoning and research work.</p>';
-                    } else if (yesCount >= 1) {
-                        message = '<p class="text-slate-900 font-semibold mb-2">Sonnet is your sweet spot</p><p class="text-slate-700 text-sm">It has enough power without the Opus price tag.</p>';
-                    } else {
-                        message = '<p class="text-slate-900 font-semibold mb-2">Haiku or Sonnet will work</p><p class="text-slate-700 text-sm">Save money with the faster, cheaper option.</p>';
-                    }
-                    return `
-                    <div class="space-y-4">
-                        <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
-                            <h3 class="font-bold text-slate-900 mb-2">Based on your answers:</h3>
-                            ${message}
-                        </div>
-                        <button id="backBtn" class="w-full py-3 px-4 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600">Back to Main Form</button>
+                
+                let html = '<div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">';
+                let yesCount = 0;
+                let allAnswered = true;
+
+                for (let i = 0; i < questions.length; i++) {
+                    const q = questions[i];
+                    const answer = this.helperAnswers[q.id];
+                    if (answer === true) yesCount++;
+                    if (answer === null) allAnswered = false;
+
+                    html += `
+                    <div class="flex items-center gap-3 mb-2 last:mb-0">
+                        <span class="text-xs text-slate-600 flex-1">${q.q}</span>
+                        <button class="helper-no px-2 py-1 text-xs rounded border border-slate-300 ${answer === false ? 'bg-red-100 text-red-700 border-red-300' : 'bg-white text-slate-600 hover:bg-slate-50'}" data-question="${q.id}">No</button>
+                        <button class="helper-yes px-2 py-1 text-xs rounded ${answer === true ? 'bg-green-100 text-green-700 border border-green-300' : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'}" data-question="${q.id}">Yes</button>
                     </div>
                     `;
                 }
+
+                if (allAnswered) {
+                    let result = 'Simple';
+                    if (yesCount >= 3) result = 'Complex';
+                    else if (yesCount >= 1) result = 'Medium';
+                    html += `<div class="mt-3 p-2 bg-white rounded border border-blue-300 text-center"><p class="text-xs font-semibold text-blue-900">Suggested: <strong>${result}</strong></p></div>`;
+                }
+
+                html += '</div>';
+                return html;
+            }
+
+            renderDetailsStep() {
+                const relevantQuestions = this.getRelevantQuestions();
+                const allAnswered = relevantQuestions.every(q => this.answers[q] !== null) && this.answers.confidential !== null;
+
+                let html = '<div class="space-y-4">';
+
+                for (const q of relevantQuestions) {
+                    if (q === 'speed') {
+                        html += `
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                            <label class="block text-xs font-semibold text-slate-900 mb-2">How fast do you need it?</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                ${[{id: 'instant', label: 'Instant'}, {id: 'fast', label: 'Fast'}, {id: 'thorough', label: 'Thorough'}].map(opt => `<button class="speed-btn p-2 rounded-lg border-2 transition-all text-xs font-medium" data-value="${opt.id}" style="border-color: ${this.answers.speed === opt.id ? '#3b82f6' : '#e2e8f0'}; background-color: ${this.answers.speed === opt.id ? '#eff6ff' : '#ffffff'};">${opt.label}</button>`).join('')}
+                            </div>
+                        </div>
+                        `;
+                    }
+                    if (q === 'context') {
+                        html += `
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                            <label class="block text-xs font-semibold text-slate-900 mb-2">How much context?</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                ${[{id: 'small', label: 'Small'}, {id: 'medium', label: 'Medium'}, {id: 'large', label: 'Large'}, {id: 'massive', label: 'Massive'}].map(opt => `<button class="context-btn p-2 rounded-lg border-2 transition-all text-xs font-medium" data-value="${opt.id}" style="border-color: ${this.answers.context === opt.id ? '#3b82f6' : '#e2e8f0'}; background-color: ${this.answers.context === opt.id ? '#eff6ff' : '#ffffff'};">${opt.label}</button>`).join('')}
+                            </div>
+                        </div>
+                        `;
+                    }
+                    if (q === 'volume') {
+                        html += `
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                            <label class="block text-xs font-semibold text-slate-900 mb-2">How often will you do this?</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                ${[{id: 'high', label: 'Often'}, {id: 'medium', label: 'Sometimes'}, {id: 'low', label: 'Rarely'}].map(opt => `<button class="volume-btn p-2 rounded-lg border-2 transition-all text-xs font-medium" data-value="${opt.id}" style="border-color: ${this.answers.volume === opt.id ? '#3b82f6' : '#e2e8f0'}; background-color: ${this.answers.volume === opt.id ? '#eff6ff' : '#ffffff'};">${opt.label}</button>`).join('')}
+                            </div>
+                        </div>
+                        `;
+                    }
+                    if (q === 'accuracy') {
+                        html += `
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                            <label class="block text-xs font-semibold text-slate-900 mb-2">How important is accuracy?</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                ${[{id: 'good-enough', label: 'Good enough'}, {id: 'reliable', label: 'Reliable'}, {id: 'mission-critical', label: 'Critical'}].map(opt => `<button class="accuracy-btn p-2 rounded-lg border-2 transition-all text-xs font-medium" data-value="${opt.id}" style="border-color: ${this.answers.accuracy === opt.id ? '#3b82f6' : '#e2e8f0'}; background-color: ${this.answers.accuracy === opt.id ? '#eff6ff' : '#ffffff'};">${opt.label}</button>`).join('')}
+                            </div>
+                        </div>
+                        `;
+                    }
+                }
+
+                html += `
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                        <label class="block text-xs font-semibold text-slate-900 mb-2">Is confidential data involved?</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            ${[{id: 'yes', label: 'Yes, confidential'}, {id: 'no', label: 'No, public'}].map(opt => `<button class="confidential-btn p-2 rounded-lg border-2 transition-all text-xs font-medium" data-value="${opt.id}" style="border-color: ${this.answers.confidential === opt.id ? '#3b82f6' : '#e2e8f0'}; background-color: ${this.answers.confidential === opt.id ? '#eff6ff' : '#ffffff'};">${opt.label}</button>`).join('')}
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button id="backBtn" class="flex-1 py-2 px-4 rounded-lg border-2 border-slate-300 text-slate-900 font-semibold hover:bg-slate-50 text-sm">← Back</button>
+                        <button id="recommendBtn" class="flex-1 py-2 px-4 rounded-lg ${allAnswered ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white cursor-pointer hover:shadow-lg' : 'bg-slate-300 text-slate-500 cursor-not-allowed'} font-semibold text-sm" ${!allAnswered ? 'disabled' : ''}>Get Recommendation</button>
+                    </div>
+                </div>
+                `;
+                return html;
             }
 
             renderResult() {
@@ -405,97 +581,173 @@
                 if (!recommended) return '';
                 const model = this.models[recommended];
                 const prompt = this.generatePrompt();
-                return `
-                <div class="space-y-6">
-                    <div class="bg-gradient-to-br ${model.color} rounded-xl shadow-lg p-8 text-white">
-                        <p class="text-sm font-semibold opacity-90 mb-1">RECOMMENDED FOR YOU</p>
-                        <h2 class="text-4xl font-bold mb-4">${model.name}</h2>
-                        <p class="text-lg opacity-90">${model.description}</p>
+                const isConfidential = this.answers.confidential === 'yes';
+                const ranked = this.getRankedModels();
+
+                let html = '<div class="space-y-4">';
+
+                // Show confidentiality warning if needed
+                if (isConfidential) {
+                    html += `
+                    <div class="bg-red-50 border border-red-300 rounded-xl p-4">
+                        <p class="text-xs font-semibold text-red-900 mb-1">⚠️ CONFIDENTIALITY ALERT</p>
+                        <p class="text-xs text-red-800">This task involves confidential data. Free models and some providers may use your data for training. Choose carefully.</p>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-white rounded-lg p-4 border border-slate-200">
-                            <p class="text-xs text-slate-600 font-semibold mb-1">BEST FOR</p>
-                            <ul class="space-y-1">
-                                ${model.bestFor.map(item => `<li class="text-sm text-slate-900">• ${item}</li>`).join('')}
-                            </ul>
+                    `;
+                }
+
+                // Top recommendation card
+                html += `
+                <div class="bg-gradient-to-br ${model.color} rounded-xl shadow-lg p-6 text-white">
+                    <p class="text-xs font-semibold opacity-90 mb-1">🏆 TOP RECOMMENDATION</p>
+                    <h2 class="text-3xl font-bold mb-2">${model.name}</h2>
+                    <p class="text-sm opacity-90">${model.description}</p>
+                </div>
+                `;
+
+                // Free alternative if the top recommendation is paid
+                if (model.tier === 'paid') {
+                    const freeModels = ranked.filter(item => this.models[item.key].tier === 'free').slice(0, 1);
+                    if (freeModels.length > 0) {
+                        const freeModel = this.models[freeModels[0].key];
+                        html += `
+                        <div class="bg-gradient-to-br ${freeModel.color} rounded-xl shadow-lg p-6 text-white">
+                            <p class="text-xs font-semibold opacity-90 mb-1">💰 FREE ALTERNATIVE</p>
+                            <h2 class="text-2xl font-bold mb-2">${freeModel.name}</h2>
+                            <p class="text-sm opacity-90">${freeModel.description}</p>
                         </div>
-                        <div class="bg-white rounded-lg p-4 border border-slate-200">
-                            <p class="text-xs text-slate-600 font-semibold mb-1">SPECS</p>
-                            <div class="space-y-1 text-sm text-slate-900">
-                                <p><strong>Speed:</strong> ${model.speed}</p>
-                                <p><strong>Cost/task:</strong> ${model.costPerTask}</p>
+                        `;
+                    }
+                }
+
+                // Specs and pricing
+                html += `
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-white rounded-lg p-3 border border-slate-200">
+                        <p class="text-xs text-slate-600 font-semibold mb-1">BEST FOR</p>
+                        <ul class="space-y-1">
+                            ${model.bestFor.slice(0, 2).map(item => `<li class="text-xs text-slate-900">• ${item}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <div class="bg-white rounded-lg p-3 border border-slate-200">
+                        <p class="text-xs text-slate-600 font-semibold mb-1">SPECS</p>
+                        <div class="space-y-1 text-xs text-slate-900">
+                            <p><strong>Speed:</strong> ${model.speed}</p>
+                            <p><strong>Accuracy:</strong> ${model.accuracy}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                    <p class="text-xs text-slate-600 font-semibold mb-1">PRICING</p>
+                    <p class="text-xs text-slate-900">${model.costs}</p>
+                </div>
+                `;
+
+                // Task approach
+                html += `
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-semibold text-slate-900">Your Task Approach</h3>
+                        <button id="copyBtn" class="p-2 rounded-lg text-xs ${this.copied ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
+                            ${this.copied ? '✓ Copied' : '📋 Copy'}
+                        </button>
+                    </div>
+                    <pre class="bg-slate-50 p-3 rounded-lg text-xs text-slate-800 overflow-x-auto border border-slate-200 whitespace-pre-wrap break-words max-h-60">${prompt}</pre>
+                </div>
+                `;
+
+                // All rankings
+                html += `
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <p class="text-sm font-semibold text-slate-900 mb-3">📊 ALL MODELS RANKED FOR YOUR TASK</p>
+                    <div class="space-y-3">
+                `;
+
+                ranked.forEach((item, idx) => {
+                    const m = item.model;
+                    const isBest = idx === 0;
+                    const confidentialWarning = isConfidential && m.trust !== 'high' ? '⚠️ ' : '';
+                    
+                    html += `
+                    <div class="border ${isBest ? 'border-blue-300 bg-blue-50' : 'border-slate-200 bg-white'} rounded-lg p-3">
+                        <div class="flex items-start justify-between mb-2">
+                            <div class="flex-1">
+                                <p class="text-sm font-bold text-slate-900">#${idx + 1} ${confidentialWarning}${m.name}</p>
+                                <p class="text-xs text-slate-600">${m.costs}</p>
+                            </div>
+                            <span class="text-xs font-semibold ${isBest ? 'bg-blue-200 text-blue-900' : 'bg-slate-200 text-slate-900'} px-2 py-1 rounded">Score: ${item.score}</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                                <p class="font-semibold text-green-900 mb-1">✓ Why it's good:</p>
+                                <ul class="space-y-0.5">
+                                    ${m.pros.map(pro => `<li class="text-green-800">• ${pro}</li>`).join('')}
+                                </ul>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-red-900 mb-1">✗ Why it's not ideal:</p>
+                                <ul class="space-y-0.5">
+                                    ${m.cons.map(con => `<li class="text-red-800">• ${con}</li>`).join('')}
+                                </ul>
                             </div>
                         </div>
                     </div>
-                    <div class="bg-white rounded-xl border border-slate-200 p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-semibold text-slate-900">Your Custom Prompt</h3>
-                            <button id="copyBtn" class="p-2 rounded-lg ${this.copied ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
-                                ${this.copied ? '✓' : '📋'}
-                            </button>
-                        </div>
-                        <pre class="bg-slate-50 p-4 rounded-lg text-xs text-slate-800 overflow-x-auto border border-slate-200 whitespace-pre-wrap break-words max-h-96">${prompt}</pre>
-                        <p class="text-xs text-slate-600 mt-3">${this.copied ? '✓ Copied to clipboard!' : 'Click the copy icon to copy this prompt'}</p>
+                    `;
+                });
+
+                html += `
                     </div>
-                    <button id="resetBtn" class="w-full py-3 px-6 rounded-xl font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 transition-all">↻ Start Over</button>
+                </div>
+
+                <button id="resetBtn" class="w-full py-2 px-4 rounded-lg font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 text-sm">↻ Start Over</button>
                 </div>
                 `;
+                return html;
             }
 
             attachEvents() {
-                document.getElementById('taskInput')?.addEventListener('input', (e) => {
-                    this.answers.taskDescription = e.target.value;
-                });
-                document.querySelectorAll('.complexity-btn').forEach(btn => {
-                    btn.addEventListener('click', () => {
+                document.getElementById('taskInput')?.addEventListener('input', (e) => { this.answers.taskDescription = e.target.value; });
+                document.querySelectorAll('.complexity-btn').forEach(btn => { 
+                    btn.addEventListener('click', () => { 
                         this.answers.complexity = btn.dataset.value;
-                        this.complexityHelperStep = 0;
-                        this.render();
-                    });
+                        // Auto-close helper when selecting a complexity level
+                        if (this.complexityHelperStep === -1) {
+                            this.complexityHelperStep = 0;
+                            this.helperAnswers = { couldDoManually: null, wouldSonnetWork: null, researchNeeded: null, complexReasoning: null };
+                        }
+                        this.render(); 
+                    }); 
                 });
-                document.querySelectorAll('.speed-btn, .budget-btn, .context-btn, .volume-btn, .accuracy-btn').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const cls = btn.className;
-                        if (cls.includes('speed-btn')) this.answers.speed = btn.dataset.value;
-                        if (cls.includes('budget-btn')) this.answers.budget = btn.dataset.value;
-                        if (cls.includes('context-btn')) this.answers.context = btn.dataset.value;
-                        if (cls.includes('volume-btn')) this.answers.volume = btn.dataset.value;
-                        if (cls.includes('accuracy-btn')) this.answers.accuracy = btn.dataset.value;
-                        this.render();
-                    });
+                document.getElementById('helperToggle')?.addEventListener('click', () => { 
+                    this.complexityHelperStep = this.complexityHelperStep === -1 ? 0 : -1;
+                    if (this.complexityHelperStep === 0) {
+                        this.helperAnswers = { couldDoManually: null, wouldSonnetWork: null, researchNeeded: null, complexReasoning: null };
+                    }
+                    this.render(); 
                 });
-                document.getElementById('notSureBtn')?.addEventListener('click', () => {
-                    this.step = 'complexity-helper';
-                    this.render();
+                document.querySelectorAll('.helper-yes, .helper-no').forEach(btn => { 
+                    btn.addEventListener('click', () => { 
+                        const question = btn.dataset.question;
+                        this.helperAnswers[question] = btn.classList.contains('helper-yes');
+                        // Auto-suggest complexity based on yes count
+                        const yesCount = Object.values(this.helperAnswers).filter(v => v === true).length;
+                        if (yesCount >= 3) this.answers.complexity = 'complex';
+                        else if (yesCount >= 1) this.answers.complexity = 'medium';
+                        else this.answers.complexity = 'simple';
+                        this.render(); 
+                    }); 
                 });
-                document.getElementById('recommendBtn')?.addEventListener('click', () => {
-                    this.step = 'result';
-                    this.render();
-                });
-                document.querySelector('.complexity-no')?.addEventListener('click', () => {
-                    this.helperAnswers[['couldDoManually', 'wouldSonnetWork', 'researchNeeded', 'complexReasoning'][this.complexityHelperStep]] = false;
-                    this.complexityHelperStep++;
-                    this.render();
-                });
-                document.querySelector('.complexity-yes')?.addEventListener('click', () => {
-                    this.helperAnswers[['couldDoManually', 'wouldSonnetWork', 'researchNeeded', 'complexReasoning'][this.complexityHelperStep]] = true;
-                    this.complexityHelperStep++;
-                    this.render();
-                });
-                document.getElementById('backBtn')?.addEventListener('click', () => {
-                    this.step = 'questions';
-                    this.render();
-                });
-                document.getElementById('copyBtn')?.addEventListener('click', () => {
-                    this.copyPrompt();
-                });
-                document.getElementById('resetBtn')?.addEventListener('click', () => {
-                    this.reset();
-                });
+                document.getElementById('nextBtn')?.addEventListener('click', () => { this.step = 'details'; this.render(); });
+                document.getElementById('backBtn')?.addEventListener('click', () => { this.step = 'task'; this.render(); });
+                document.querySelectorAll('.speed-btn, .context-btn, .volume-btn, .accuracy-btn, .confidential-btn').forEach(btn => { btn.addEventListener('click', () => { const cls = btn.className; if (cls.includes('speed-btn')) this.answers.speed = btn.dataset.value; if (cls.includes('context-btn')) this.answers.context = btn.dataset.value; if (cls.includes('volume-btn')) this.answers.volume = btn.dataset.value; if (cls.includes('accuracy-btn')) this.answers.accuracy = btn.dataset.value; if (cls.includes('confidential-btn')) this.answers.confidential = btn.dataset.value; this.render(); }); });
+                document.getElementById('recommendBtn')?.addEventListener('click', () => { this.step = 'result'; this.render(); });
+                document.getElementById('copyBtn')?.addEventListener('click', () => { this.copyPrompt(); });
+                document.getElementById('resetBtn')?.addEventListener('click', () => { this.reset(); });
             }
         }
 
-        new ClaudeAdvisor();
+        new AIModelAdvisor();
     </script>
 </body>
 </html>
