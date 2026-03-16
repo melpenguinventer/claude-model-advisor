@@ -45,6 +45,18 @@
                 };
 
                 this.models = {
+                    haiku_free: {
+                        name: 'Claude Haiku 4.5 (Free)',
+                        description: 'Free tier - fast and lightweight',
+                        color: 'from-yellow-300 to-amber-400',
+                        provider: 'Anthropic',
+                        bestFor: ['Quick tasks', 'Learning', 'Experimentation', 'Light use'],
+                        costs: 'Free',
+                        speed: 'Fastest (50+ tok/s)',
+                        accuracy: '73.3%',
+                        context: '200K tokens',
+                        use: 'When you want to try things out for free',
+                    },
                     haiku: {
                         name: 'Claude Haiku 4.5',
                         description: 'Lightning-fast and affordable',
@@ -56,7 +68,6 @@
                         accuracy: '73.3% (SWE-bench)',
                         context: '200K tokens',
                         use: 'When speed and cost matter more than depth',
-                        costPerTask: '$0.01-0.05',
                     },
                     sonnet: {
                         name: 'Claude Sonnet 4.6',
@@ -69,7 +80,6 @@
                         accuracy: '~80% (SWE-bench)',
                         context: '200K or 1M tokens',
                         use: 'Your default for most work—best value',
-                        costPerTask: '$0.10-0.50',
                     },
                     opus: {
                         name: 'Claude Opus 4.6',
@@ -82,7 +92,18 @@
                         accuracy: '80.9% (SWE-bench)',
                         context: '1M tokens (extended)',
                         use: 'Reserve for truly complex, high-stakes work',
-                        costPerTask: '$1-3',
+                    },
+                    gpt4o_mini: {
+                        name: 'GPT-4o mini (Free)',
+                        description: 'Free lightweight model from OpenAI',
+                        color: 'from-emerald-300 to-green-400',
+                        provider: 'OpenAI',
+                        bestFor: ['Quick tasks', 'Learning', 'Simple reasoning', 'Free experimentation'],
+                        costs: 'Free (limited)',
+                        speed: 'Very fast (30+ tok/s)',
+                        accuracy: '~75%',
+                        context: '128K tokens',
+                        use: 'Free tier with decent capability',
                     },
                     gpt4o: {
                         name: 'GPT-4o',
@@ -95,7 +116,6 @@
                         accuracy: '~82% (Reasoning)',
                         context: '128K tokens',
                         use: 'For multimodal tasks and vision work',
-                        costPerTask: '$0.50-2',
                     },
                     gpt4turbo: {
                         name: 'GPT-4 Turbo',
@@ -108,7 +128,18 @@
                         accuracy: '~80%',
                         context: '128K tokens',
                         use: 'Budget-friendly reasoning alternative',
-                        costPerTask: '$0.30-1',
+                    },
+                    gemini_free: {
+                        name: 'Gemini (Free)',
+                        description: 'Google\'s free multimodal model',
+                        color: 'from-cyan-300 to-blue-400',
+                        provider: 'Google',
+                        bestFor: ['Free multimodal tasks', 'Quick analysis', 'Learning', 'Experimentation'],
+                        costs: 'Free',
+                        speed: 'Very fast (40+ tok/s)',
+                        accuracy: '~75%',
+                        context: '1M tokens',
+                        use: 'Free tier with excellent value',
                     },
                     gemini: {
                         name: 'Gemini Pro 2.0',
@@ -121,7 +152,6 @@
                         accuracy: '~78%',
                         context: '1M tokens',
                         use: 'Best value for long-context and multimodal',
-                        costPerTask: '$0.01-0.15',
                     },
                 };
 
@@ -282,7 +312,7 @@
             }
 
             renderQuestions() {
-                const allAnswered = this.answers.taskDescription.trim() && this.answers.speed && this.answers.budget && this.answers.context && this.answers.volume && this.answers.accuracy && (this.answers.complexity || this.complexityHelperStep > 0);
+                const allAnswered = this.answers.taskDescription.trim() && this.answers.speed && this.answers.context && this.answers.volume && this.answers.accuracy && (this.answers.complexity || this.complexityHelperStep > 0);
                 return `
                 <div class="space-y-6">
                     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
@@ -302,12 +332,6 @@
                         <label class="block text-sm font-semibold text-slate-900 mb-3">How fast do you need an answer?</label>
                         <div class="grid grid-cols-3 gap-3">
                             ${[{id: 'instant', label: 'Instant', desc: 'Now'}, {id: 'fast', label: 'Fast', desc: '< 1 min'}, {id: 'thorough', label: 'Thorough', desc: 'Take your time'}].map(opt => `<button class="speed-btn p-3 rounded-lg border-2 transition-all text-sm" data-value="${opt.id}" style="border-color: ${this.answers.speed === opt.id ? '#3b82f6' : '#e2e8f0'}; background-color: ${this.answers.speed === opt.id ? '#eff6ff' : '#ffffff'};"><div class="font-medium text-slate-900">${opt.label}</div><div class="text-xs text-slate-500">${opt.desc}</div></button>`).join('')}
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                        <label class="block text-sm font-semibold text-slate-900 mb-3">Cost sensitivity?</label>
-                        <div class="grid grid-cols-3 gap-3">
-                            ${[{id: 'very', label: 'Very sensitive', icon: '$'}, {id: 'somewhat', label: 'Moderate', icon: '$$'}, {id: 'flexible', label: 'Flexible', icon: '$$$'}].map(opt => `<button class="budget-btn p-3 rounded-lg border-2 transition-all text-sm" data-value="${opt.id}" style="border-color: ${this.answers.budget === opt.id ? '#3b82f6' : '#e2e8f0'}; background-color: ${this.answers.budget === opt.id ? '#eff6ff' : '#ffffff'};"><div class="text-lg font-bold text-slate-600">${opt.icon}</div><div class="font-medium text-slate-900">${opt.label}</div></button>`).join('')}
                         </div>
                     </div>
                     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
